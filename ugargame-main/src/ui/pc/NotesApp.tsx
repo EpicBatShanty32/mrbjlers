@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, Lock } from 'lucide-react';
 import { useGame } from '../../game/store';
 import { cn } from '../common/kit';
+import { useSkin } from '../os/shared';
 
 const RULES = [
   'Считай чистую прибыль, а не оборот.',
@@ -19,6 +20,7 @@ export default function NotesApp() {
   const notes = useGame((s) => s.notes);
   const setNotes = useGame((s) => s.setNotes);
   const rules = useGame((s) => !!s.flags.sheetUnlocked);
+  const mac = useSkin() === 'mac';
   const [pos, setPos] = useState({ line: 1, col: 1 });
   const [folded, setFolded] = useState(false);
   const ta = useRef<HTMLTextAreaElement>(null);
@@ -103,7 +105,7 @@ export default function NotesApp() {
           Стр {pos.line}, стлб {pos.col}
         </span>
         <span className="ml-auto border-l border-[#DADADA] px-3">100%</span>
-        <span className="border-l border-[#DADADA] px-3">Windows (CRLF)</span>
+        <span className="border-l border-[#DADADA] px-3">{mac ? 'macOS (LF)' : 'Windows (CRLF)'}</span>
         <span className="border-l border-[#DADADA] px-3">UTF-8</span>
       </div>
     </div>
