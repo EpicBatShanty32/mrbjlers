@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronDown, FileSpreadsheet, FileText, FolderOpen, Globe, Pause, Play, VolumeX } from 'lucide-react';
 import { useGame } from '../../../game/store';
-import type { TgMessage } from '../../../game/types';
+import type { CharacterId, TgMessage } from '../../../game/types';
+import { audio, type VoiceHandle } from '../../../audio';
 import { cn } from '../../common/kit';
 import { hashStr, mmss, seeded, TG, useTgNav } from './shared';
 
@@ -33,43 +34,122 @@ export function TgText({ text, className }: { text: string; className?: string }
 let active: { id: string; stop: () => void } | null = null;
 const heard = new Set<string>();
 
-function usePlayback(id: string, dur: number, rate: number) {
+const CAST = new Set<string>(['artem', 'marat', 'danya', 'pasha', 'ivan', 'kapul', 'karim', 'sanya', 'grisha', 'max', 'lera'] satisfies CharacterId[]);
+/** Voice for a Telegram voice/video message: 'me' = Artem, cast ids as is, group members by name. */
+const speakerOf = (m: TgMessage) => (m.from === 'me' ? 'artem' : CAST.has(m.from) ? m.from : m.fromName || m.from);
+const wordStart = (text: string, i: number) => (i <= 0 ? 0 : text.lastIndexOf(' ', i) + 1);
+
+type Speech = { speaker: string; text: string };
+
+/**
+ * Playback position for voice/video messages. With voice-over the message text is spoken in the
+ * sender's voice and the position follows speech; otherwise a timer plays the nominal duration.
+ */
+function usePlayback(id: string, dur: number, rate: number, speech?: Speech) {
   const [playing, setPlaying] = useState(false);
   const [pos, setPos] = useState(0);
   const [wasHeard, setHeard] = useState(() => heard.has(id));
   const posRef = useRef(0);
+  const charRef = useRef(0);
+  const voice = useRef<{ h: VoiceHandle | null } | null>(null);
+  const tts = useRef(false);
+
+  const stopSpeech = () => {
+    const v = voice.current;
+    voice.current = null;
+    v?.h?.cancel();
+  };
+  const finish = () => {
+    stopSpeech();
+    posRef.current = 0;
+    charRef.current = 0;
+    setPos(0);
+    setPlaying(false);
+    heard.add(id);
+    setHeard(true);
+    if (active?.id === id) active = null;
+  };
+  const startSpeech = (from: number, r: number) => {
+    tts.current = false;
+    if (!speech) return;
+    const len = Math.max(1, speech.text.length);
+    const rec: { h: VoiceHandle | null } = { h: null };
+    voice.current = rec;
+    rec.h = audio.speak({
+      speaker: speech.speaker,
+      text: speech.text.slice(from),
+      rate: r,
+      onProgress: (i) => {
+        if (voice.current !== rec || !tts.current) return;
+        charRef.current = from + i;
+        posRef.current = Math.min(dur, ((from + i) / len) * dur);
+        setPos(posRef.current);
+      },
+      onEnd: () => {
+        if (voice.current !== rec) return;
+        voice.current = null;
+        if (tts.current) finish();
+      },
+    });
+    tts.current = rec.h.tts;
+    if (!tts.current) {
+      // no voice-over: the timer drives playback
+      voice.current = null;
+      rec.h.cancel();
+    }
+  };
+
   useEffect(() => {
     if (!playing) return;
     let last = performance.now();
     const t = setInterval(() => {
       const now = performance.now();
-      posRef.current += ((now - last) / 1000) * rate;
+      const dt = ((now - last) / 1000) * rate;
       last = now;
-      if (posRef.current >= dur) {
-        posRef.current = 0;
-        setPos(0);
-        setPlaying(false);
-        heard.add(id);
-        setHeard(true);
-      } else setPos(posRef.current);
+      if (tts.current) return;
+      posRef.current += dt;
+      if (posRef.current >= dur) finish();
+      else setPos(posRef.current);
     }, 80);
     return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playing, rate, dur, id]);
+  // 1.5× while speaking: restart the rest of the text at the new rate
+  useEffect(() => {
+    if (playing && tts.current && voice.current && speech) {
+      stopSpeech();
+      startSpeech(wordStart(speech.text, charRef.current), rate);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rate]);
   useEffect(
     () => () => {
+      stopSpeech();
       if (active?.id === id) active = null;
     },
     [id],
   );
   const toggle = () => {
     if (playing) {
+      stopSpeech();
       setPlaying(false);
       if (active?.id === id) active = null;
       return;
     }
     if (active && active.id !== id) active.stop();
-    active = { id, stop: () => setPlaying(false) };
+    active = {
+      id,
+      stop: () => {
+        stopSpeech();
+        setPlaying(false);
+      },
+    };
     heard.add(id);
+    if (speech) {
+      const from = wordStart(speech.text, Math.floor((posRef.current / dur) * speech.text.length));
+      charRef.current = from;
+      startSpeech(from, rate);
+    }
     setPlaying(true);
   };
   return { playing, pos, toggle, heard: wasHeard, started: playing || pos > 0 || wasHeard };
@@ -78,7 +158,7 @@ function usePlayback(id: string, dur: number, rate: number) {
 export function VoiceBubble({ m, mine, time }: { m: TgMessage; mine: boolean; time: ReactNode }) {
   const dur = Math.max(1, m.duration ?? 6);
   const [fast, setFast] = useState(false);
-  const { playing, pos, toggle, heard: wasHeard } = usePlayback(m.id, dur, fast ? 1.5 : 1);
+  const { playing, pos, toggle, heard: wasHeard } = usePlayback(m.id, dur, fast ? 1.5 : 1, { speaker: speakerOf(m), text: m.text });
   const [open, setOpen] = useState(false);
   useEffect(() => {
     if (playing) setOpen(true);
@@ -175,7 +255,7 @@ export function VideoCircle({ m, time }: { m: TgMessage; time: ReactNode }) {
   const scene = m.scene ?? 'office';
   const sc = SCENES[scene];
   const mo = EMOJI_MOTION[scene];
-  const { playing, pos, toggle, started } = usePlayback(m.id, dur, 1);
+  const { playing, pos, toggle, started } = usePlayback(m.id, dur, 1, { speaker: speakerOf(m), text: m.text });
   const size = 176;
   const r = size / 2 - 4;
   const circ = 2 * Math.PI * r;

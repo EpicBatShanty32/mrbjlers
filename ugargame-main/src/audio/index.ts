@@ -10,13 +10,23 @@
  *    touch music/ambience; the claimant sets them with `music()` / `ambience()`.
  *  - State-driven sounds (notifications, toasts, money, window/phone changes) are played
  *    by the audio module itself; UI code only calls `sfx()` for local interactions.
+ *
+ * Modules: engine (context + mix graph), music + songs (generative soundtrack), ambience,
+ * sfx, voice (speechSynthesis), director (adaptive selection, UI click sounds).
  */
 import { useSyncExternalStore } from 'react';
 import type { CharacterId } from '../game/types';
+import { setAmbience } from './ambience';
+import { claim, player as director, useAudioDirector as useDirector } from './director';
+import { level as outputLevel, unlockEngine } from './engine';
+import { setMusic } from './music';
+import { playSfx } from './sfx';
+import { getSnap, patchSnap, subscribeSnap } from './state';
+import { listVoices, speak as speakVoice, stopVoice as stopSpeech, voiceAvailable as hasVoice } from './voice';
 
 export type SfxId =
   // generic UI
-  | 'ui_click' | 'ui_hover' | 'ui_back' | 'ui_toggle' | 'ui_open' | 'ui_close' | 'ui_error' | 'ui_success' | 'ui_select'
+  | 'ui_click' | 'ui_hover' | 'ui_back' | 'ui_toggle' | 'ui_open' | 'ui_close' | 'ui_error' | 'ui_success' | 'ui_select' | 'ui_warn'
   // typing
   | 'key' | 'text_tick'
   // phone
@@ -56,6 +66,8 @@ export interface SfxOptions {
 
 export interface FadeOptions {
   fadeMs?: number;
+  /** 0..1 level of this music/ambience layer (default 1). Ambience only. */
+  volume?: number;
 }
 
 export interface SpeakRequest {
@@ -63,6 +75,8 @@ export interface SpeakRequest {
   /** Display text; guillemets, emoji and symbols are cleaned up before speaking. */
   text: string;
   emotion?: string;
+  /** Speech-rate multiplier on top of the character's casting (e.g. 1.5 for Telegram 1.5×). */
+  rate?: number;
   onStart?: () => void;
   /** Character index reached in `text` (word boundaries) — for subtitle sync. */
   onProgress?: (charIndex: number) => void;
@@ -113,89 +127,79 @@ export const TRACKS: TrackInfo[] = [
   { id: 'credits', title: 'С нуля (титры)', artist: 'P2P: С НУЛЯ — OST', mood: 'финал' },
 ];
 
-// ───────── stub implementation (replaced by the audio engine) ─────────
-
-let snap: AudioSnapshot = { unlocked: false, track: null, manual: false, paused: false, speaking: false, ambience: null };
-const subs = new Set<() => void>();
-const emit = (patch: Partial<AudioSnapshot>) => {
-  snap = { ...snap, ...patch };
-  subs.forEach((f) => f());
+const step = (d: number) => {
+  const i = TRACKS.findIndex((t) => t.id === director.current());
+  director.play(TRACKS[(i + d + TRACKS.length) % TRACKS.length].id);
 };
 
 export const audio = {
   /** Call from a user gesture; idempotent. */
   unlock(): void {
-    if (!snap.unlocked) emit({ unlocked: true });
+    unlockEngine();
   },
-  sfx(_id: SfxId, _opts?: SfxOptions): void {},
-  music(track: MusicTrack | null, _opts?: FadeOptions): void {
-    emit({ track });
+  sfx(id: SfxId, opts?: SfxOptions): void {
+    playSfx(id, opts);
   },
-  ambience(id: AmbienceId | null, _opts?: FadeOptions): void {
-    emit({ ambience: id });
+  music(track: MusicTrack | null, opts?: FadeOptions): void {
+    setMusic(track, opts?.fadeMs);
+    patchSnap({ track });
+  },
+  ambience(id: AmbienceId | null, opts?: FadeOptions): void {
+    setAmbience(id, opts?.fadeMs, opts?.volume ?? 1);
+    patchSnap({ ambience: id });
   },
   /** Take over music/ambience (cutscenes, credits). Returns release(). */
-  claimScene(_owner: string): () => void {
-    return () => {};
+  claimScene(owner: string): () => void {
+    return claim(owner);
   },
   speak(req: SpeakRequest): VoiceHandle {
-    const ms = 600 + req.text.length * 55;
-    let done = false;
-    const t = setTimeout(() => {
-      done = true;
-      req.onEnd?.();
-    }, ms);
-    req.onStart?.();
-    return {
-      tts: false,
-      estimatedMs: ms,
-      cancel() {
-        if (done) return;
-        done = true;
-        clearTimeout(t);
-        req.onEnd?.();
-      },
-    };
+    return speakVoice(req);
   },
-  stopVoice(): void {},
+  stopVoice(): void {
+    stopSpeech();
+  },
+  /** A Russian speechSynthesis voice is installed (independent of the voice-over setting). */
   voiceAvailable(): boolean {
-    return false;
+    return hasVoice();
   },
-  /** Installed speechSynthesis voices suitable for Russian (for the settings UI). */
+  /** Installed speechSynthesis voices suitable for Russian (for the settings UI), best first. */
   voices(): { name: string; gender: 'male' | 'female' | 'unknown' }[] {
-    return [];
+    return listVoices();
   },
   tracks(): TrackInfo[] {
     return TRACKS;
   },
   snapshot(): AudioSnapshot {
-    return snap;
+    return getSnap();
   },
   subscribe(fn: () => void): () => void {
-    subs.add(fn);
-    return () => void subs.delete(fn);
+    return subscribeSnap(fn);
   },
   /** Phone music app controls. */
   player: {
     play(track: MusicTrack): void {
-      emit({ track, manual: true, paused: false });
+      director.play(track);
     },
     pause(): void {
-      emit({ paused: true });
+      director.pause();
     },
     resume(): void {
-      emit({ paused: false });
+      director.resume();
     },
-    next(): void {},
-    prev(): void {},
+    next(): void {
+      step(1);
+    },
+    prev(): void {
+      step(-1);
+    },
     /** Back to the adaptive soundtrack. */
     auto(): void {
-      emit({ manual: false, paused: false });
+      director.auto();
     },
   },
   /** Current output loudness 0..1 for visualizers. */
   level(): number {
-    return 0;
+    return outputLevel();
   },
 };
 
@@ -204,4 +208,6 @@ export function useAudioSnapshot(): AudioSnapshot {
 }
 
 /** Mounted once at the top of App: unlock on first gesture, adaptive music & ambience. */
-export function useAudioDirector(): void {}
+export function useAudioDirector(): void {
+  useDirector();
+}
