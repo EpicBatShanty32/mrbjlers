@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { CarFront, CircleCheck, Heart, House, Lock, Monitor, Search, ShoppingCart, Smartphone, Star, Building, Truck } from 'lucide-react';
 import { useGame } from '../../game/store';
 import type { BankId, GameState } from '../../game/types';
-import { BANKS, CHARACTERS, SHOP } from '../../game/data/static';
+import { BANKS, CHARACTERS, SHOP, shopOwned } from '../../game/data/static';
 import { fmtRub, maskCard } from '../../game/util';
 import { cn } from '../common/kit';
 import { useLightResult } from './parts/lightResult';
@@ -31,6 +31,8 @@ const SELLER: Record<string, { name: string; rating: number; reviews: number; sh
   pc1: { name: 'DNS · Новозаровск', rating: 4.8, reviews: 1243, ship: 'Самовывоз завтра' },
   pc2: { name: 'Ситилинк', rating: 4.9, reviews: 387, ship: 'Доставка и сборка за 2 дня' },
   phone1: { name: 're:Store', rating: 4.9, reviews: 5120, ship: 'Доставка завтра' },
+  phone2: { name: 're:Store', rating: 4.9, reviews: 2318, ship: 'Доставка завтра, перенос данных бесплатно' },
+  mac: { name: 're:Store Business', rating: 5.0, reviews: 804, ship: 'Доставка и настройка за 1 день' },
   flat: { name: 'Циан · собственник', rating: 4.6, reviews: 18, ship: 'Заселение через 2 дня' },
   office: { name: 'Коворкинг «Сити»', rating: 4.7, reviews: 92, ship: 'Ключ-карта в день оплаты' },
   lada: { name: 'Авто.ру · частник', rating: 4.5, reviews: 7, ship: 'Осмотр и сделка в ГИБДД' },
@@ -42,15 +44,7 @@ function useOwned() {
   const hero = useGame((s) => s.hero);
   const office = useGame((s) => !!s.flags.officeRented);
   const aml = useGame((s) => !!s.flags.amlPro);
-  return (id: string) =>
-    (id === 'pc1' && hero.pcTier >= 1) ||
-    (id === 'pc2' && hero.pcTier >= 2) ||
-    (id === 'phone1' && hero.phoneTier >= 1) ||
-    (id === 'flat' && hero.home !== 'room') ||
-    (id === 'office' && office) ||
-    (id === 'lada' && hero.car === 'lada') ||
-    (id === 'bmw' && hero.car === 'bmw_leasing') ||
-    (id === 'aml' && aml);
+  return (id: string) => shopOwned({ hero, flags: { officeRented: office, amlPro: aml } }, id);
 }
 
 export default function ShopTab() {
@@ -133,7 +127,8 @@ export default function ShopTab() {
 
 // ───────── current setup ─────────
 
-const PC_LABEL = ['Старый ноутбук, 8 ГБ', 'Ryzen 5 / 32 ГБ', 'Ryzen 9 + 2 монитора'];
+const PC_LABEL = ['Старый ноутбук, 8 ГБ', 'Ryzen 5 / 32 ГБ', 'Ryzen 9 + 2 монитора', 'MacBook Pro M5 Max'];
+const PHONE_LABEL = ['iPhone 11 (б/у, трещина)', 'iPhone 15 Pro', 'iPhone 18 Pro Max'];
 const HOME_LABEL: Record<GameState['hero']['home'], string> = { room: 'Комната в Новозаровске', flat: 'Студия в Москве', office: 'Офис' };
 const CAR_LABEL = { none: 'Нет — автобус №32', lada: 'Lada Vesta', bmw_leasing: 'BMW M5 (лизинг)' };
 
@@ -144,7 +139,7 @@ function Setup() {
   const monthly = SHOP.reduce((s, i) => s + (i.monthly && owned(i.id) ? i.monthly : 0), 0);
   const cells = [
     { icon: <Monitor size={16} />, label: 'Компьютер', v: PC_LABEL[hero.pcTier] },
-    { icon: <Smartphone size={16} />, label: 'Телефон', v: hero.phoneTier ? 'iPhone 15 Pro' : 'Старый Android' },
+    { icon: <Smartphone size={16} />, label: 'Телефон', v: PHONE_LABEL[hero.phoneTier] },
     { icon: <House size={16} />, label: 'Жильё', v: HOME_LABEL[hero.home] },
     { icon: <Building size={16} />, label: 'Офис', v: office ? 'Коворкинг «Сити»' : 'Нет' },
     { icon: <CarFront size={16} />, label: 'Авто', v: CAR_LABEL[hero.car ?? 'none'] },

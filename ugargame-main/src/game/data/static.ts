@@ -121,10 +121,30 @@ export interface ShopItemDef {
   emoji: string;
 }
 
+/** Already bought (or a better device of the same kind is owned). */
+export function shopOwned(d: { hero: { pcTier: number; phoneTier: number; home: string; car: string | null }; flags: Record<string, unknown> }, id: string): boolean {
+  const h = d.hero;
+  switch (id) {
+    case 'pc1': return h.pcTier >= 1;
+    case 'pc2': return h.pcTier >= 2;
+    case 'mac': return h.pcTier === 3;
+    case 'phone1': return h.phoneTier >= 1;
+    case 'phone2': return h.phoneTier >= 2;
+    case 'flat': return h.home !== 'room';
+    case 'office': return !!d.flags.officeRented;
+    case 'lada': return h.car === 'lada';
+    case 'bmw': return h.car === 'bmw_leasing';
+    case 'aml': return !!d.flags.amlPro;
+  }
+  return false;
+}
+
 export const SHOP: ShopItemDef[] = [
   { id: 'pc1', cat: 'pc', title: 'Апгрейд ПК: Ryzen 5 / 32 ГБ / SSD', desc: 'Убирает лаги при 4+ окнах. Нагрузка ЦП падает в 3 раза.', price: 68000, minChapter: 2, emoji: '🖥️' },
   { id: 'pc2', cat: 'pc', title: 'Рабочая станция: Ryzen 9 + 2 монитора', desc: 'Максимальная скорость работы, без ограничений по окнам.', price: 185000, minChapter: 4, emoji: '🖥️' },
-  { id: 'phone1', cat: 'phone', title: 'Смартфон iPhone 15 Pro', desc: 'Быстрый Face ID, батарея держит весь день.', price: 98000, minChapter: 3, emoji: '📱' },
+  { id: 'phone1', cat: 'phone', title: 'Смартфон iPhone 15 Pro', desc: 'Dynamic Island, быстрый Face ID, батарея держит весь день.', price: 98000, minChapter: 3, emoji: '📱' },
+  { id: 'phone2', cat: 'phone', title: 'Смартфон iPhone 18 Pro Max', desc: 'Экран 6,9″ с Always-On, батарея на два дня. Внимательность +3.', price: 159000, minChapter: 4, emoji: '📱' },
+  { id: 'mac', cat: 'pc', title: 'MacBook Pro 16″ M5 Max + Studio Display', desc: 'Переезд с Windows на macOS: Dock, Spotlight, ни одного лага. Внимательность +5.', price: 349000, minChapter: 5, emoji: '💻' },
   { id: 'flat', cat: 'home', title: 'Квартира-студия в Москве (аренда)', desc: 'Переезд из Новозаровска. Аренда 65 000 ₽/мес, первый месяц + залог.', price: 130000, monthly: 65000, minChapter: 4, emoji: '🏙️' },
   { id: 'office', cat: 'home', title: 'Офис в коворкинге «Сити»', desc: 'Рабочее место для команды. +доверие команды, +10 к внимательности.', price: 90000, monthly: 90000, minChapter: 5, emoji: '🏢' },
   { id: 'lada', cat: 'car', title: 'Lada Vesta (б/у, 2021)', desc: 'Скромно и надёжно. Марат одобряет.', price: 890000, minChapter: 5, emoji: '🚗' },

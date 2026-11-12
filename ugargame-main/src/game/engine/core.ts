@@ -65,7 +65,8 @@ export function schedule(d: D, delayMin: number, type: string, payload?: Record<
 export function attention(d: D) {
   const h = d.hero;
   const office = d.hero.home === 'office' ? 10 : 0;
-  return Math.round(clamp(0.5 * h.energy + 0.4 * (100 - h.stress) + 10 + h.attentionBonus + office));
+  const gear = (h.pcTier === 3 ? 5 : 0) + (h.phoneTier === 2 ? 3 : 0);
+  return Math.round(clamp(0.5 * h.energy + 0.4 * (100 - h.stress) + 10 + h.attentionBonus + office + gear));
 }
 
 export function hero(d: D, delta: { energy?: number; stress?: number; attention?: number }) {
