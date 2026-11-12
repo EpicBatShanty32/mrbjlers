@@ -42,7 +42,7 @@ export default function TitleScreen() {
       <AnimatePresence mode="wait">{phase === 'splash' ? <Splash key="splash" /> : <Menu key="menu" />}</AnimatePresence>
       {flash > 0 && <motion.div key={flash} className="pointer-events-none absolute inset-0 z-50 bg-white mix-blend-overlay" initial={{ opacity: 0.9 }} animate={{ opacity: 0 }} transition={{ duration: 1.1, ease: 'easeOut' }} />}
       {grain && <div className="grain pointer-events-none absolute -inset-[60%] z-40 opacity-[.07]" />}
-      <div className="pointer-events-none absolute inset-0 z-30 bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,.78))]" />
+      <div className="pointer-events-none absolute inset-0 z-[15] bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,.78))]" />
     </div>
   );
 }
@@ -123,7 +123,7 @@ function ChartLine() {
   }, []);
   const draw = { duration: 4.2, ease: [0.45, 0, 0.2, 1] as const, delay: 0.5 };
   return (
-    <svg viewBox="0 0 1600 400" preserveAspectRatio="xMidYMid slice" className="absolute inset-x-0 top-[9%] h-[36%] w-full">
+    <svg viewBox="0 0 1600 400" preserveAspectRatio="xMidYMid slice" className="absolute inset-x-0 top-[9%] h-[36%] w-full [mask-image:linear-gradient(to_right,transparent,black_30%)]">
       <defs>
         <linearGradient id="t-line" x1="0" x2="1">
           <stop offset="0" stopColor="#0ECB81" stopOpacity="0" />
@@ -131,8 +131,8 @@ function ChartLine() {
           <stop offset="1" stopColor="#8BFFD0" />
         </linearGradient>
         <linearGradient id="t-area" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#0ECB81" stopOpacity=".14" />
-          <stop offset="1" stopColor="#0ECB81" stopOpacity="0" />
+          <stop offset="0" stopColor="#0ECB81" stopOpacity=".1" />
+          <stop offset=".6" stopColor="#0ECB81" stopOpacity="0" />
         </linearGradient>
       </defs>
       {[90, 170, 250, 330].map((y) => (
@@ -142,7 +142,7 @@ function ChartLine() {
       <motion.path d={d} fill="none" stroke="url(#t-line)" strokeWidth="10" opacity=".35" style={{ filter: 'blur(7px)' }} initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={draw} />
       <motion.path d={d} fill="none" stroke="url(#t-line)" strokeWidth="2.4" strokeLinejoin="round" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={draw} />
       <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 4.6, duration: 0.6 }}>
-        <circle cx={last[0]} cy={last[1]} r="14" fill="#0ECB81" opacity=".25" className="pulse-dot" style={{ transformOrigin: `${last[0]}px ${last[1]}px` }} />
+        <circle cx={last[0]} cy={last[1]} r="14" fill="#0ECB81" opacity=".25" className="pulse-dot" />
         <circle cx={last[0]} cy={last[1]} r="4.5" fill="#C9FFE6" />
         <text x={last[0] - 14} y={last[1] - 16} textAnchor="end" fill="#A7F3D0" fontSize="15" fontFamily="ui-monospace, monospace" opacity=".8">
           USDT/RUB 92,41 ▲
@@ -222,7 +222,7 @@ function Logo({ center }: { center?: boolean }) {
       <motion.div initial={{ opacity: 0, letterSpacing: '1.1em' }} animate={{ opacity: 1, letterSpacing: '0.55em' }} transition={{ duration: 1.8, ease: 'easeOut' }} className="text-[11px] font-semibold text-emerald-300/80 uppercase">
         симулятор P2P-трейдера
       </motion.div>
-      <h1 className="mt-3 leading-[0.92] font-black tracking-tight [perspective:600px]" style={{ fontSize: center ? 'clamp(64px, 8.5vw, 124px)' : 'clamp(52px, 6.2vw, 96px)', filter: 'drop-shadow(0 0 28px rgba(240,185,11,.22))' }}>
+      <h1 className="mt-3 leading-[0.92] font-black tracking-tight whitespace-nowrap [perspective:600px]" style={{ fontSize: center ? 'clamp(64px, 8.5vw, 124px)' : 'clamp(44px, 5.3vw, 86px)', filter: 'drop-shadow(0 0 28px rgba(240,185,11,.22))' }}>
         <motion.span initial={{ opacity: 0, y: 24, filter: 'blur(14px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} transition={{ duration: 1, delay: 0.15 }} className="inline-block text-white">
           P2P:
         </motion.span>{' '}
@@ -325,7 +325,8 @@ function Menu() {
 
   return (
     <motion.div className="absolute inset-0 z-20 flex" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.6 }}>
-      <div className="flex w-[min(600px,48vw)] shrink-0 flex-col justify-center pb-10 pl-[7vw]">
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-[64%] bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
+      <div className="relative flex w-[min(600px,48vw)] shrink-0 flex-col justify-center pb-10 pl-[7vw]">
         <Logo />
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.3, duration: 1 }} className="mt-5 max-w-md text-[13.5px] leading-relaxed text-white/60">
           Новозаровск, 3 700 ₽ на карте и старый компьютер. Каждый перевод — руками через банк, каждый чек — в папку, каждое ФИО — сверить. Восемь глав, четыре концовки.
@@ -411,7 +412,7 @@ function Menu() {
           )}
         </AnimatePresence>
       </div>
-      <motion.footer initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.8 }} className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-6 px-[7vw] pb-6 text-[11px] text-white/30">
+      <motion.footer initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.8 }} className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-6 bg-gradient-to-t from-black/70 to-transparent px-[7vw] pt-10 pb-6 text-[11px] text-white/45">
         <span>Все персонажи, банки-двойники и события вымышлены. Игра обучает финансовой и цифровой гигиене.</span>
         <span className="flex shrink-0 gap-5">
           <span>↑↓ — выбор · Enter — открыть · Esc — назад</span>

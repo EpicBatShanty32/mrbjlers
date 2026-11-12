@@ -36,9 +36,9 @@ export function DesktopWallpaper() {
   return <WallpaperView id={id} hour={slot / 6} moscow={moscow} className="pointer-events-none absolute inset-0" />;
 }
 
-export const WallpaperView = memo(function WallpaperView({ id, hour = 21, moscow = false, className }: { id: string; hour?: number; moscow?: boolean; className?: string }) {
+export const WallpaperView = memo(function WallpaperView({ id, hour = 21, moscow = false, label = true, className }: { id: string; hour?: number; moscow?: boolean; label?: boolean; className?: string }) {
   const known = WALLPAPERS.some((w) => w.id === id) ? id : 'dynamic';
-  return <div className={className ?? 'absolute inset-0'}>{known === 'dynamic' ? <Dynamic hour={hour} moscow={moscow} /> : <Static id={known} />}</div>;
+  return <div className={className ?? 'absolute inset-0'}>{known === 'dynamic' ? <Dynamic hour={hour} moscow={moscow} label={label} /> : <Static id={known} />}</div>;
 });
 
 // ───────── dynamic city wallpaper ─────────
@@ -80,7 +80,7 @@ const STARS = (() => {
   return Array.from({ length: 110 }, () => ({ x: f(r() * 1600), y: f(r() * 560), s: f(0.6 + r() * 1.5), o: 0.35 + r() * 0.65 }));
 })();
 
-function Dynamic({ hour, moscow }: { hour: number; moscow: boolean }) {
+function Dynamic({ hour, moscow, label }: { hour: number; moscow: boolean; label: boolean }) {
   const far = useMemo(() => genCity(moscow ? 23 : 11, moscow ? 'moscow' : 'novo', 0), [moscow]);
   const near = useMemo(() => genCity(moscow ? 31 : 17, moscow ? 'moscow' : 'novo', 1), [moscow]);
   const h = ((hour % 24) + 24) % 24;
@@ -107,6 +107,10 @@ function Dynamic({ hour, moscow }: { hour: number; moscow: boolean }) {
             <stop offset=".45" stopColor="#FFB45E" stopOpacity=".28" />
             <stop offset="1" stopColor="#FFB45E" stopOpacity="0" />
           </radialGradient>
+          <radialGradient id="dyn-halo">
+            <stop offset="0" stopColor="#DCE4FF" stopOpacity=".3" />
+            <stop offset="1" stopColor="#DCE4FF" stopOpacity="0" />
+          </radialGradient>
           <mask id="dyn-moon">
             <rect width="1600" height="1000" fill="#fff" />
             {moon && <circle cx={moon.x + 11} cy={moon.y - 7} r="22" fill="#000" />}
@@ -125,10 +129,12 @@ function Dynamic({ hour, moscow }: { hour: number; moscow: boolean }) {
         )}
         {sun && <circle cx={f(sun.x)} cy={f(sun.y)} r="230" fill="url(#dyn-sun)" opacity={0.6 + 0.4 * dl} />}
         {moon && (
-          <g mask="url(#dyn-moon)" opacity={0.95 * night}>
-            <circle cx={f(moon.x)} cy={f(moon.y)} r="58" fill="#C9D6FF" opacity=".12" />
-            <circle cx={f(moon.x)} cy={f(moon.y)} r="24" fill="#EEF2FF" />
-          </g>
+          <>
+            <circle cx={f(moon.x)} cy={f(moon.y)} r="110" fill="url(#dyn-halo)" opacity={night} />
+            <g mask="url(#dyn-moon)" opacity={0.95 * night}>
+              <circle cx={f(moon.x)} cy={f(moon.y)} r="24" fill="#EEF2FF" />
+            </g>
+          </>
         )}
         <g filter="url(#dyn-blur)" opacity={0.35 + 0.25 * dl}>
           <ellipse cx="300" cy="300" rx="330" ry="48" fill={mix('#1B2340', '#FFFFFF', dl)} />
@@ -148,7 +154,7 @@ function Dynamic({ hour, moscow }: { hour: number; moscow: boolean }) {
         className="absolute inset-x-0 bottom-0 h-[33%] w-full"
       />
       <div className="absolute inset-x-0 bottom-0 h-[30%] bg-gradient-to-t from-black/45 to-transparent" />
-      <div className="absolute right-6 bottom-5 text-right text-[10px] font-semibold tracking-[0.45em] text-white/25">{moscow ? 'МОСКВА' : 'НОВОЗАРОВСК'}</div>
+      {label && <div className="absolute right-6 bottom-5 text-right text-[10px] font-semibold tracking-[0.45em] text-white/25">{moscow ? 'МОСКВА' : 'НОВОЗАРОВСК'}</div>}
     </>
   );
 }

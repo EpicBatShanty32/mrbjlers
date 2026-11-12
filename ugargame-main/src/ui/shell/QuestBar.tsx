@@ -30,7 +30,8 @@ export default function QuestBar() {
   const pct = required.length ? doneCount / required.length : 1;
 
   return (
-    <div className={cn('relative z-[250] shrink-0', mac ? 'mx-2 mb-1 rounded-xl bg-[#1E1E24]/55 shadow-[0_8px_30px_-12px_rgba(0,0,0,.7)] ring-1 ring-white/10 backdrop-blur-2xl' : 'border-t border-white/[.07] bg-[#0E131D]/75 backdrop-blur-2xl')}>
+    <div className={cn('relative z-[250] shrink-0', mac ? 'mx-2 mb-1 rounded-xl shadow-[0_8px_30px_-12px_rgba(0,0,0,.7)] ring-1 ring-white/10' : 'border-t border-white/[.07]')}>
+      <div className={cn('pointer-events-none absolute inset-0 -z-10 backdrop-blur-2xl', mac ? 'rounded-xl bg-[#1E1E24]/55' : 'bg-[#0E131D]/75')} />
       <button onClick={() => useGame.getState().toggleQuest()} className="flex min-h-[34px] w-full items-center gap-3 px-3 py-1.5 text-left">
         <span className="relative flex h-6 w-6 shrink-0 items-center justify-center" title={`${doneCount}/${required.length}`}>
           <svg viewBox="0 0 24 24" className="absolute inset-0 -rotate-90">

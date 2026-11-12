@@ -4,7 +4,7 @@ import { Copy, Minus, Plus, Square, X } from 'lucide-react';
 import { useGame } from '../../game/store';
 import type { PcAppId } from '../../game/types';
 import { cn } from '../common/kit';
-import { iconDelta } from '../os/shared';
+import { iconDelta, topWindow } from '../os/shared';
 
 const MIN_W: Record<PcAppId, number> = { browser: 760, files: 520, calc: 280, notes: 340 };
 const MIN_H: Record<PcAppId, number> = { browser: 460, files: 340, calc: 380, notes: 280 };
@@ -31,7 +31,8 @@ const variants: Variants = {
 
 export function WindowFrame({ id, title, icon, bounds, children }: { id: PcAppId; title: string; icon: ReactNode; bounds: { w: number; h: number }; children: ReactNode }) {
   const w = useGame((s) => s.ui.windows[id]);
-  const top = useGame((s) => s.ui.zTop);
+  // Focus = topmost *visible* window (a minimised window can hold zTop).
+  const focused = useGame((s) => topWindow(s) === id);
   const tier = useGame((s) => s.hero.pcTier);
   const lagging = useGame((s) => s.hero.pcTier === 0 && Object.values(s.ui.windows).filter((x) => x.open && !x.minimized).length > 3);
   const lag = tier === 0;
@@ -94,7 +95,6 @@ export function WindowFrame({ id, title, icon, bounds, children }: { id: PcAppId
     setDrag(null);
   };
 
-  const focused = w.z === top;
   const g = useGame.getState;
   const bar = { onPointerDown: onDown('move'), onPointerMove: onMove, onPointerUp: onUp, onDoubleClick: () => g().toggleMaximize(id) };
   const shadow = mac

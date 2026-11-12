@@ -265,7 +265,7 @@ function ScreenTab() {
                     className="group text-left"
                   >
                     <div className={cn('relative aspect-[16/10] overflow-hidden rounded-lg ring-2 transition', on ? 'ring-[#0A84FF]' : 'ring-white/10 group-hover:ring-white/30')}>
-                      <WallpaperView id={id} hour={hour} moscow={moscow} className="absolute inset-0 transition-transform duration-500 group-hover:scale-[1.04]" />
+                      <WallpaperView id={id} hour={hour} moscow={moscow} label={false} className="absolute inset-0 transition-transform duration-500 group-hover:scale-[1.04]" />
                     </div>
                     <div className={cn('mt-1.5 text-[12px]', on ? 'font-semibold text-white' : 'text-white/60')}>
                       {w.name}

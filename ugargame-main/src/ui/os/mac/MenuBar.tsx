@@ -109,7 +109,8 @@ export default function MenuBar() {
     ['help', 'Справка'],
   ];
   return (
-    <div ref={ref} className="@container relative z-[400] flex h-7 shrink-0 items-center bg-[#16161B]/50 px-1.5 text-[13px] text-white/90 backdrop-blur-2xl backdrop-saturate-150" style={{ boxShadow: 'inset 0 -.5px 0 rgba(255,255,255,.08)' }}>
+    <div ref={ref} className="@container relative z-[400] flex h-7 shrink-0 items-center px-1.5 text-[13px] text-white/90" style={{ boxShadow: 'inset 0 -.5px 0 rgba(255,255,255,.08)' }}>
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[#16161B]/50 backdrop-blur-2xl backdrop-saturate-150" />
       {MENUS.map(([id, label]) => (
         <button
           key={id}
@@ -152,7 +153,7 @@ export default function MenuBar() {
           <Search size={14} />
         </MbIcon>
         <span className="px-1.5 text-[12.5px] whitespace-nowrap num">
-          <span className="@max-4xl:hidden">{dateStr(now)} </span>
+          <span className="@max-5xl:hidden">{dateStr(now)} </span>
           {clockStr(now)}
         </span>
       </div>

@@ -13,7 +13,7 @@ import { Slider } from '../settings/controls';
 import { APP_IDS, AppIcon, useAppMeta, type IconId } from '../os/apps';
 import { matchCmd, useCommands, type Cmd } from '../os/commands';
 import { rng } from '../os/skyline';
-import { iconRef, useDismiss, VLogo } from '../os/shared';
+import { iconRef, topWindow, useDismiss, VLogo } from '../os/shared';
 import { ChapterBadge, ClipboardChip, CpuMeter, SpeedControls, Vitals } from '../os/widgets';
 
 type Panel = 'start' | 'search' | 'quick' | 'calendar' | null;
@@ -31,12 +31,20 @@ export default function Taskbar() {
   };
   const close = () => setPanel(null);
   return (
-    <div ref={ref} className="@container relative z-[300] flex h-12 shrink-0 items-center gap-2 border-t border-white/[.08] bg-[#151A25]/80 px-1.5 backdrop-blur-2xl backdrop-saturate-150">
-      <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
-        <Weather />
+    // Narrow monitors: left-aligned icons (Win11 option) so the HUD never overlaps them; wide: centred.
+    <div ref={ref} className="@container relative z-[300] h-12 shrink-0 border-t border-white/[.08] px-1.5">
+      {/* Blur lives on its own layer: a blurred ancestor would stop the flyouts from blurring the desktop. */}
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[#151A25]/80 backdrop-blur-2xl backdrop-saturate-150" />
+      <div className="flex h-full items-center gap-1.5 @6xl:grid @6xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+      <div className="order-2 flex min-w-0 flex-1 items-center gap-1 overflow-hidden @6xl:order-1">
+        <span className="order-last @6xl:order-first">
+          <Weather />
+        </span>
+        <Vitals skin="win" />
+        <ClipboardChip skin="win" />
         <CpuMeter />
       </div>
-      <div className="flex shrink-0 items-center gap-0.5">
+      <div className="order-1 flex shrink-0 items-center gap-0.5 @6xl:order-2">
         <TbBtn active={panel === 'start'} title="Пуск" onClick={() => toggle('start')}>
           <VLogo size={22} />
         </TbBtn>
@@ -47,12 +55,11 @@ export default function Taskbar() {
           <AppButton key={id} id={id} />
         ))}
       </div>
-      <div className="flex min-w-0 flex-1 items-center justify-end gap-1">
-        <ClipboardChip skin="win" />
-        <Vitals skin="win" />
+      <div className="order-3 flex shrink-0 items-center justify-end gap-1 @6xl:min-w-0">
         <SpeedControls skin="win" />
         <TrayButton active={panel === 'quick'} onClick={() => toggle('quick')} />
         <ClockButton active={panel === 'calendar'} onClick={() => toggle('calendar')} />
+      </div>
       </div>
       <AnimatePresence>
         {(panel === 'start' || panel === 'search') && <StartMenu key="start" search={panel === 'search'} close={close} />}
@@ -75,7 +82,7 @@ function AppButton({ id }: { id: PcAppId }) {
   // 0 closed · 1 minimised · 2 open in background · 3 focused
   const st = useGame((s) => {
     const w = s.ui.windows[id];
-    return w.open ? (w.minimized ? 1 : w.z === s.ui.zTop ? 3 : 2) : 0;
+    return w.open ? (w.minimized ? 1 : topWindow(s) === id ? 3 : 2) : 0;
   });
   const meta = useAppMeta()(id);
   const ref = useMemo(() => iconRef(id), [id]);
@@ -105,14 +112,14 @@ function Weather() {
   const t = Math.round([-9, -7, -2, 6, 13, 18, 21, 19, 13, 6, -1, -6][month] + (r - 0.5) * 6 + (h > 11 && h < 18 ? 3 : -1));
   const night = h < 6 || h >= 21;
   return (
-    <div title="Погода" className="flex h-10 shrink-0 items-center gap-2 rounded-md px-2 hover:bg-white/[.06] @max-4xl:hidden">
+    <div title="Погода" className="flex h-10 shrink-0 items-center gap-2 rounded-md px-2 hover:bg-white/[.06]">
       <span className={kind === 'clear' ? (night ? 'text-indigo-200' : 'text-amber-300') : 'text-sky-200'}>{kind === 'rain' ? <CloudRain size={20} /> : kind === 'cloud' ? <Cloud size={20} /> : night ? <Moon size={20} /> : <Sun size={20} />}</span>
       <div className="leading-tight">
         <div className="text-[12px] font-semibold num">
           {t > 0 ? '+' : ''}
           {t}°
         </div>
-        <div className="text-[10px] whitespace-nowrap text-white/45">
+        <div className="text-[10px] whitespace-nowrap text-white/45 @max-6xl:hidden">
           {moscow ? 'Москва' : 'Новозаровск'} · {kind === 'rain' ? 'дождь' : kind === 'cloud' ? 'облачно' : 'ясно'}
         </div>
       </div>

@@ -29,12 +29,9 @@ export function CpuMeter({ compact }: { compact?: boolean }) {
       <Cpu size={13} className={hot ? 'animate-pulse' : ''} />
       <span>ЦП {cpu}%</span>
       {!compact && (
-        <>
-          <span className="text-white/25">·</span>
-          <span>
-            ОЗУ {ram.toFixed(1)}/{ramMax} ГБ
-          </span>
-        </>
+        <span className="whitespace-nowrap @max-6xl:hidden">
+          <span className="text-white/25">· </span>ОЗУ {ram.toFixed(1)}/{ramMax} ГБ
+        </span>
       )}
       {hot && <span className="font-semibold">· тормозит</span>}
     </div>
@@ -61,7 +58,7 @@ export function ClipboardChip({ skin }: { skin: Skin }) {
   return (
     <div title={title} className={cn('flex h-8 min-w-0 max-w-[190px] items-center gap-1.5 rounded-md px-2 text-[10.5px] transition', flash ? 'bg-amber-400/25 text-amber-100' : 'text-white/60 hover:bg-white/[.06]')}>
       <ClipboardList size={14} className="shrink-0" />
-      <span className="truncate @max-4xl:hidden">{clip ? `Скопировано: ${clip.label}` : 'Буфер пуст'}</span>
+      <span className={cn('truncate', !clip && '@max-6xl:hidden')}>{clip ? `Скопировано: ${clip.label}` : 'Буфер пуст'}</span>
     </div>
   );
 }
