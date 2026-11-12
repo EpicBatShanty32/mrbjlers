@@ -1,95 +1,147 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Calculator, FileText, FolderOpen, Globe, X } from 'lucide-react';
-import { useEffect } from 'react';
+import { CircleCheck, CircleX, Image, Info, LayoutGrid, MessageCircle, RefreshCw, Settings2, TriangleAlert, X } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useGame } from '../../game/store';
 import type { PcAppId } from '../../game/types';
 import { cn } from '../common/kit';
 import { useSize } from '../common/hooks';
+import { audio } from '../../audio';
+import { openSettings } from '../settings/store';
+import { APP_IDS, AppIcon, useAppMeta } from '../os/apps';
+import { osRefs, useDismiss, useSkin, type Skin } from '../os/shared';
 import { WindowFrame } from './WindowFrame';
 import BrowserApp from './BrowserApp';
 import FilesApp from '../pc/FilesApp';
 import CalcApp from '../pc/CalcApp';
 import NotesApp from '../pc/NotesApp';
 
-export const APPS: Record<PcAppId, { title: string; short: string; icon: React.ReactNode; big: React.ReactNode }> = {
-  browser: { title: 'Браузер — P2P и биржи', short: 'Браузер', icon: <Globe size={13} />, big: <Globe size={26} className="text-sky-300" /> },
-  files: { title: 'Папка: Чеки и Ордера (115-ФЗ)', short: 'Чеки и Ордера', icon: <FolderOpen size={13} />, big: <FolderOpen size={26} className="text-amber-300" /> },
-  calc: { title: 'Калькулятор спреда', short: 'Калькулятор', icon: <Calculator size={13} />, big: <Calculator size={26} className="text-emerald-300" /> },
-  notes: { title: 'Блокнот: Правила Марата KMI.txt', short: 'Правила.txt', icon: <FileText size={13} />, big: <FileText size={26} className="text-slate-200" /> },
+const BODY: Record<PcAppId, () => ReactNode> = {
+  browser: () => <BrowserApp />,
+  files: () => <FilesApp />,
+  calc: () => <CalcApp />,
+  notes: () => <NotesApp />,
 };
 
 export default function Desktop() {
   const [ref, size] = useSize<HTMLDivElement>();
+  const skin = useSkin();
+  const meta = useAppMeta();
   const lagging = useGame((s) => s.hero.pcTier === 0 && Object.values(s.ui.windows).filter((w) => w.open && !w.minimized).length > 3);
   const fileCount = useGame((s) => s.files.length);
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const [byName, setByName] = useState(false);
+  const [refresh, setRefresh] = useState(0);
+  const [sel, setSel] = useState<PcAppId | null>(null);
+  useEffect(() => {
+    osRefs.desk = ref.current;
+  }, [ref]);
+  const ids = byName ? [...APP_IDS].sort((a, b) => meta(a).short.localeCompare(meta(b).short, 'ru')) : APP_IDS;
+  const mac = skin === 'mac';
+
+  const onContext = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('[data-window]')) return;
+    e.preventDefault();
+    const r = ref.current!.getBoundingClientRect();
+    setMenu({ x: e.clientX - r.left, y: e.clientY - r.top });
+  };
+  const items: MenuItem[] = [
+    { icon: <RefreshCw size={14} />, label: 'Обновить', hint: mac ? undefined : 'F5', run: () => setRefresh((n) => n + 1) },
+    { icon: <LayoutGrid size={14} />, label: byName ? 'Упорядочить значки: как было' : 'Упорядочить значки по имени', run: () => setByName((v) => !v) },
+    null,
+    { icon: <Image size={14} />, label: mac ? 'Изменить обои…' : 'Персонализация', run: () => openSettings('screen', 'wallpaper') },
+    { icon: <Settings2 size={14} />, label: 'Настройки игры', run: () => openSettings('sound') },
+  ];
+
   return (
-    <div ref={ref} className={cn('absolute inset-0 overflow-hidden', lagging && 'lagging')}>
-      <Wallpaper />
-      <div className="absolute top-3 left-3 z-[1] flex flex-col gap-1">
-        {(Object.keys(APPS) as PcAppId[]).map((id) => (
-          <button
+    <div ref={ref} className={cn('absolute inset-0 isolate overflow-hidden', lagging && 'lagging')} onContextMenu={onContext} onPointerDown={(e) => e.target === e.currentTarget && setSel(null)}>
+      <motion.div key={refresh} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }} className={cn('absolute top-3 z-[1] flex flex-col gap-1', mac ? 'right-3 items-center' : 'left-2')}>
+        {ids.map((id) => (
+          <motion.button
+            layout
             key={id}
-            onClick={() => useGame.getState().openWindow(id)}
-            className="group flex w-[86px] flex-col items-center gap-1 rounded-md p-2 text-center hover:bg-white/10"
+            onClick={() => {
+              setSel(id);
+              useGame.getState().openWindow(id);
+            }}
+            className={cn(
+              'group relative flex w-[86px] flex-col items-center gap-1 rounded-[7px] px-1 pt-2 pb-1.5 text-center outline-none',
+              !mac && (sel === id ? 'bg-sky-400/20 ring-1 ring-sky-300/40' : 'hover:bg-white/[.09] hover:ring-1 hover:ring-white/10'),
+            )}
           >
-            <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-white/5 ring-1 ring-white/10 backdrop-blur-sm group-hover:bg-white/10">
-              {APPS[id].big}
-              {id === 'files' && fileCount > 0 && <span className="absolute -top-1 -right-1 rounded-full bg-amber-500 px-1 text-[9px] font-bold text-black">{fileCount}</span>}
+            <div className={cn('relative transition-transform duration-200 group-active:scale-95', mac && sel === id && 'rounded-[10px] bg-white/15 p-0.5')}>
+              <AppIcon id={id} skin={skin} size={mac ? 50 : 44} />
+              {id === 'files' && fileCount > 0 && <span className="absolute -top-1 -right-1.5 min-w-[18px] rounded-full bg-rose-500 px-1 text-center text-[10px] leading-[18px] font-bold text-white shadow ring-2 ring-black/20">{fileCount}</span>}
             </div>
-            <span className="text-[11px] leading-tight text-white/85 drop-shadow">{APPS[id].short}</span>
-          </button>
+            <span className={cn('max-w-full leading-tight text-white [text-shadow:0_1px_3px_rgba(0,0,0,.95)]', mac ? cn('rounded-[4px] px-1 text-[11.5px] font-medium', sel === id && 'bg-[#0A64D8] [text-shadow:none]') : 'text-[11px]')}>{meta(id).short}</span>
+          </motion.button>
         ))}
-      </div>
-      <WindowFrame id="browser" title={APPS.browser.title} icon={APPS.browser.icon} bounds={size}>
-        <BrowserApp />
-      </WindowFrame>
-      <WindowFrame id="files" title={APPS.files.title} icon={APPS.files.icon} bounds={size}>
-        <FilesApp />
-      </WindowFrame>
-      <WindowFrame id="calc" title={APPS.calc.title} icon={APPS.calc.icon} bounds={size}>
-        <CalcApp />
-      </WindowFrame>
-      <WindowFrame id="notes" title={APPS.notes.title} icon={APPS.notes.icon} bounds={size}>
-        <NotesApp />
-      </WindowFrame>
-      <Toasts />
+      </motion.div>
+      {APP_IDS.map((id) => (
+        <WindowFrame key={id} id={id} title={meta(id).title} icon={<AppIcon id={id} skin={skin} size={16} />} bounds={size}>
+          {BODY[id]()}
+        </WindowFrame>
+      ))}
+      <Toasts skin={skin} />
+      <AnimatePresence>{menu && <ContextMenu at={menu} bounds={size} skin={skin} items={items} onClose={() => setMenu(null)} />}</AnimatePresence>
     </div>
   );
 }
 
-function Wallpaper() {
-  const night = useGame((s) => {
-    const h = Math.floor((s.now % 1440) / 60);
-    return h < 7 || h >= 20;
-  });
-  const moscow = useGame((s) => s.hero.location === 'moscow');
+export type MenuItem = { icon?: ReactNode; label: string; hint?: string; run: () => void; disabled?: boolean } | null;
+
+function ContextMenu({ at, bounds, skin, items, onClose }: { at: { x: number; y: number }; bounds: { w: number; h: number }; skin: Skin; items: MenuItem[]; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useDismiss(ref, true, onClose);
+  const mac = skin === 'mac';
+  const W = 236;
+  const H = items.length * 30 + 10;
   return (
-    <div className="pointer-events-none absolute inset-0">
-      <div
-        className="absolute inset-0 transition-colors duration-[3000ms]"
-        style={{
-          background: night
-            ? 'radial-gradient(1200px 600px at 75% 110%, #1d2a4a 0%, transparent 60%), radial-gradient(800px 400px at 10% -10%, #182033 0%, transparent 60%), #0a0d14'
-            : 'radial-gradient(1200px 600px at 75% 110%, #23406b 0%, transparent 60%), radial-gradient(900px 500px at 10% -10%, #2b3550 0%, transparent 60%), #111827',
-        }}
-      />
-      <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '48px 48px' }} />
-      {/* skyline */}
-      <svg className="absolute right-0 bottom-0 left-0 h-[34%] w-full opacity-40" preserveAspectRatio="none" viewBox="0 0 1000 200">
-        {moscow ? (
-          <path d="M0 200 V140 H60 V110 H90 V150 H140 V80 H160 V40 H175 V80 H200 V130 H260 V60 H300 V20 H315 V60 H340 V120 H400 V90 H450 V150 H520 V70 H560 V30 H575 V70 H600 V140 H680 V100 H720 V60 H750 V110 H820 V140 H880 V90 H930 V150 H1000 V200 Z" fill="#0b1220" />
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, scale: 0.96, y: -4 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, transition: { duration: 0.1 } }}
+      transition={{ duration: 0.14 }}
+      style={{ left: Math.min(at.x, bounds.w - W - 6), top: Math.min(at.y, bounds.h - H - 6), width: W, zIndex: 100001, transformOrigin: 'top left' }}
+      className={cn('absolute p-1 text-white/90 shadow-[0_18px_50px_-10px_rgba(0,0,0,.8)] backdrop-blur-2xl', mac ? 'rounded-[10px] bg-[#2A2A2F]/85 text-[13px] ring-1 ring-black/60' : 'rounded-lg bg-[#262A35]/90 text-[12.5px] ring-1 ring-white/10')}
+      onContextMenu={(e) => e.preventDefault()}
+    >
+      {items.map((it, i) =>
+        it ? (
+          <button
+            key={i}
+            disabled={it.disabled}
+            onClick={() => {
+              audio.sfx('ui_click');
+              it.run();
+              onClose();
+            }}
+            className={cn('flex w-full items-center gap-2.5 text-left disabled:opacity-40', mac ? 'rounded-[5px] px-2 py-[4px] hover:bg-[#0A64D8]' : 'rounded-md px-2.5 py-1.5 hover:bg-white/10')}
+          >
+            {!mac && <span className="text-white/65">{it.icon}</span>}
+            <span className="flex-1">{it.label}</span>
+            {it.hint && <span className="text-[11px] text-white/35">{it.hint}</span>}
+          </button>
         ) : (
-          <path d="M0 200 V150 H80 V120 H200 V150 H260 V110 H380 V150 H420 V125 H560 V150 H600 V115 H720 V150 H780 V130 H900 V150 H1000 V200 Z" fill="#0b1220" />
-        )}
-      </svg>
-      <div className="absolute right-6 bottom-6 text-right font-semibold tracking-[0.3em] text-white/10">VORONOV·OS</div>
-    </div>
+          <div key={i} className={cn('mx-2 my-1 h-px', mac ? 'bg-white/10' : 'bg-white/[.08]')} />
+        ),
+      )}
+    </motion.div>
   );
 }
 
-function Toasts() {
+const TONE = {
+  success: { icon: <CircleCheck size={15} />, bg: 'bg-emerald-500/20 text-emerald-300', title: 'Готово' },
+  error: { icon: <CircleX size={15} />, bg: 'bg-rose-500/20 text-rose-300', title: 'Ошибка' },
+  warn: { icon: <TriangleAlert size={15} />, bg: 'bg-amber-500/20 text-amber-300', title: 'Внимание' },
+  info: { icon: <Info size={15} />, bg: 'bg-sky-500/20 text-sky-300', title: 'Уведомление' },
+  thought: { icon: <MessageCircle size={15} />, bg: 'bg-violet-500/25 text-violet-200', title: 'Артём думает' },
+} as const;
+
+function Toasts({ skin }: { skin: Skin }) {
   const toasts = useGame((s) => s.toasts);
   const dismiss = useGame((s) => s.dismissToast);
+  const mac = skin === 'mac';
   useEffect(() => {
     if (!toasts.length) return;
     const t = setInterval(() => {
@@ -99,30 +151,35 @@ function Toasts() {
     return () => clearInterval(t);
   }, [toasts.length]);
   return (
-    <div className="pointer-events-none absolute bottom-3 left-28 z-[200] flex w-[380px] max-w-[60%] flex-col gap-2">
+    <div className={cn('pointer-events-none absolute flex w-[370px] max-w-[60%] flex-col gap-2', mac ? 'top-2 right-2' : 'bottom-3 left-3 flex-col-reverse')} style={{ zIndex: 100000 }}>
       <AnimatePresence initial={false}>
-        {toasts.map((t) => (
-          <motion.div
-            key={t.id}
-            initial={{ opacity: 0, y: 16, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, x: -30 }}
-            className={cn(
-              'pointer-events-auto flex items-start gap-2 rounded-xl border px-3 py-2.5 text-xs shadow-xl backdrop-blur-md',
-              t.kind === 'success' && 'border-emerald-400/30 bg-emerald-950/85 text-emerald-100',
-              t.kind === 'error' && 'border-rose-400/30 bg-rose-950/85 text-rose-100',
-              t.kind === 'warn' && 'border-amber-400/30 bg-amber-950/85 text-amber-100',
-              t.kind === 'info' && 'border-sky-400/25 bg-slate-900/90 text-slate-100',
-              t.kind === 'thought' && 'border-violet-400/30 bg-violet-950/85 text-violet-100 italic',
-            )}
-          >
-            <span className="mt-px">{t.kind === 'thought' ? '💭' : t.kind === 'success' ? '✅' : t.kind === 'error' ? '⛔' : t.kind === 'warn' ? '⚠️' : 'ℹ️'}</span>
-            <span className="flex-1 leading-snug">{t.kind === 'thought' ? `Артём: «${t.text}»` : t.text}</span>
-            <button onClick={() => dismiss(t.id)} className="opacity-50 hover:opacity-100">
-              <X size={12} />
-            </button>
-          </motion.div>
-        ))}
+        {toasts.map((t) => {
+          const tone = TONE[t.kind];
+          return (
+            <motion.div
+              key={t.id}
+              layout
+              initial={mac ? { opacity: 0, x: 60 } : { opacity: 0, y: 16, scale: 0.97 }}
+              animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+              exit={mac ? { opacity: 0, x: 80 } : { opacity: 0, x: -30 }}
+              transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+              className={cn(
+                'pointer-events-auto flex items-start gap-2.5 p-2.5 text-xs text-white/90 shadow-[0_16px_40px_-12px_rgba(0,0,0,.8)] backdrop-blur-2xl',
+                mac ? 'rounded-2xl bg-[#2B2B31]/80 ring-1 ring-white/10' : 'rounded-lg bg-[#1E2330]/90 ring-1 ring-white/10',
+                t.kind === 'error' && !mac && 'ring-rose-400/30',
+              )}
+            >
+              <span className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-full', tone.bg)}>{tone.icon}</span>
+              <div className="min-w-0 flex-1">
+                <div className="text-[10.5px] font-semibold tracking-wide text-white/45 uppercase">{tone.title}</div>
+                <div className={cn('mt-0.5 leading-snug', t.kind === 'thought' && 'text-violet-100 italic')}>{t.kind === 'thought' ? `«${t.text}»` : t.text}</div>
+              </div>
+              <button onClick={() => dismiss(t.id)} className="rounded p-0.5 text-white/40 hover:bg-white/10 hover:text-white">
+                <X size={12} />
+              </button>
+            </motion.div>
+          );
+        })}
       </AnimatePresence>
     </div>
   );
