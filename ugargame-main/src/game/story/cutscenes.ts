@@ -3,6 +3,7 @@ import type { Ctx } from './ctx';
 import { fmtRub, round2 } from '../util';
 import { incoming } from '../engine/banks';
 import { ledger, netWorth, profitSince } from '../engine/core';
+import type { AmbienceId, MusicTrack, SfxId } from '../../audio';
 
 export type SceneBg = 'rain_street' | 'room_night' | 'chat' | 'train' | 'moscow_cafe' | 'office_day' | 'office_night' | 'boardroom' | 'end_good' | 'end_wolf' | 'end_crisis' | 'end_new';
 
@@ -15,12 +16,23 @@ export interface CutChoice {
   run?: (c: Ctx) => void;
 }
 
+/** One-shot sound at line start; a [id, delayMs] pair delays it. */
+export type LineSfx = SfxId | [SfxId, number];
+
 export interface CutLine {
   who: Speaker;
   text: string | ((d: GameState) => string);
   emotion?: 'calm' | 'angry' | 'sad' | 'happy' | 'smirk' | 'serious' | 'worried';
   bg?: SceneBg;
   choices?: CutChoice[];
+  /* presentation only */
+  music?: MusicTrack;
+  ambience?: AmbienceId;
+  sfx?: LineSfx | LineSfx[];
+  /** Camera shake on this line. */
+  shake?: boolean;
+  /** Scene-art cue (e.g. 'suv_leave': the SUV drives off). */
+  cue?: string;
 }
 
 export interface Cutscene {
@@ -30,6 +42,9 @@ export interface Cutscene {
   bg: SceneBg;
   lines: CutLine[];
   onEnd?: (c: Ctx) => void;
+  /* presentation only */
+  music?: MusicTrack;
+  ambience?: AmbienceId;
 }
 
 const ch2Profit = (d: GameState) => round2(profitSince(d, d.chapterStartedAt));
