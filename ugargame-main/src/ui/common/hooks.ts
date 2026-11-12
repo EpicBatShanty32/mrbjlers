@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../../game/store';
+import { getSettings } from '../../game/settings';
+import type { BankId, PcAppId, PhoneNotification } from '../../game/types';
+import { audio, type SfxId, type SfxOptions } from '../../audio';
+import { installInteraction } from '../../audio/director';
 
 /** Drives the simulation: ~5 ticks per real second. */
 export function useGameLoop() {
@@ -28,55 +32,104 @@ export function useSize<T extends HTMLElement>() {
   return [ref, size] as const;
 }
 
-// ───────── tiny WebAudio sound effects (no assets) ─────────
-let ac: AudioContext | null = null;
-type Sfx = 'notify' | 'message' | 'cash' | 'error' | 'click' | 'thought';
+// ───────── sound effects (procedural, see src/audio) ─────────
 
-export function sfx(kind: Sfx) {
-  if (!useGame.getState().ui.sound) return;
-  try {
-    ac ??= new AudioContext();
-    const now = ac.currentTime;
-    const tone = (freq: number, start: number, dur: number, type: OscillatorType = 'sine', vol = 0.06) => {
-      const o = ac!.createOscillator();
-      const g = ac!.createGain();
-      o.type = type;
-      o.frequency.value = freq;
-      g.gain.setValueAtTime(0, now + start);
-      g.gain.linearRampToValueAtTime(vol, now + start + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, now + start + dur);
-      o.connect(g).connect(ac!.destination);
-      o.start(now + start);
-      o.stop(now + start + dur + 0.02);
-    };
-    if (kind === 'notify') { tone(880, 0, 0.12); tone(1320, 0.09, 0.16); }
-    if (kind === 'message') tone(990, 0, 0.1, 'triangle');
-    if (kind === 'cash') { tone(1046, 0, 0.1); tone(1318, 0.08, 0.1); tone(1568, 0.16, 0.18); }
-    if (kind === 'error') { tone(220, 0, 0.2, 'sawtooth', 0.04); tone(180, 0.15, 0.25, 'sawtooth', 0.04); }
-    if (kind === 'click') tone(600, 0, 0.04, 'square', 0.02);
-    if (kind === 'thought') tone(520, 0, 0.3, 'sine', 0.03);
-  } catch {
-    /* audio unavailable */
-  }
+type LegacySfx = 'notify' | 'message' | 'cash' | 'error' | 'click' | 'thought';
+const LEGACY: Record<LegacySfx, SfxId> = { notify: 'notify_system', message: 'msg_receive', cash: 'cash_in', error: 'ui_error', click: 'ui_click', thought: 'thought' };
+
+/** Thin wrapper over `audio.sfx` (accepts the old short names too). Volume/mute come from settings. */
+export function sfx(kind: LegacySfx | SfxId, opts?: SfxOptions) {
+  audio.sfx(LEGACY[kind as LegacySfx] ?? (kind as SfxId), opts);
 }
 
-/** Plays sounds in reaction to state changes. */
+const NOTIFY: Record<PhoneNotification['app'], SfxId> = {
+  sber: 'notify_bank', tbank: 'notify_bank', alfa: 'notify_bank', telegram: 'notify_tg', sms: 'notify_sms',
+  avito: 'notify_market', wallet: 'notify_wallet', system: 'notify_system', auth: 'notify_system',
+};
+
+/** Plays sounds in reaction to state changes (notifications, toasts, money, windows, phone…). */
 export function useSoundEffects() {
   useEffect(() => {
-    let lastBuzz = useGame.getState().ui.buzz;
-    let lastToast = useGame.getState().toasts.at(-1)?.id;
-    return useGame.subscribe((s) => {
-      if (s.ui.buzz !== lastBuzz) {
-        lastBuzz = s.ui.buzz;
-        sfx('notify');
+    const offUi = installInteraction();
+    const last: Record<string, number> = {};
+    const play = (id: SfxId, opts?: SfxOptions, gap = 0) => {
+      const now = performance.now();
+      if (gap && now - (last[id] ?? -1e9) < gap) return;
+      last[id] = now;
+      audio.sfx(id, opts);
+    };
+    const unsub = useGame.subscribe((s, p) => {
+      if (s === p || s.menu || !s.started || p.menu || !p.started) return;
+      let cashToast = false;
+
+      if (s.toasts !== p.toasts) {
+        const old = new Set(p.toasts.map((t) => t.id));
+        for (const t of s.toasts) {
+          if (old.has(t.id)) continue;
+          if (t.kind === 'error') play('ui_error');
+          else if (t.kind === 'success') (cashToast = true), play('cash_in', undefined, 250);
+          else if (t.kind === 'thought') play('thought', { volume: 0.8 });
+          else if (t.kind === 'warn') play('ui_warn');
+        }
       }
-      const t = s.toasts.at(-1);
-      if (t && t.id !== lastToast) {
-        lastToast = t.id;
-        if (t.kind === 'error') sfx('error');
-        else if (t.kind === 'success') sfx('cash');
-        else if (t.kind === 'thought') sfx('thought');
+
+      const top = s.notifications[0];
+      if (top && s.notifications !== p.notifications && !p.notifications.some((n) => n.id === top.id)) {
+        const dnd = getSettings().dnd;
+        if (!dnd) play(NOTIFY[top.app] ?? 'notify_system', undefined, 350);
+        if (dnd || s.ui.phoneLocked) play('phone_vibrate', { volume: 0.8 }, 900);
       }
+
+      // messages arriving in the Telegram chat that is open right now (no notification for those)
+      const chatId = s.ui.phoneApp === 'telegram' && !s.ui.phoneLocked ? s.ui.tgChat : null;
+      if (chatId && chatId === p.ui.tgChat && s.tg !== p.tg) {
+        const a = p.tg[chatId]?.messages;
+        const b = s.tg[chatId]?.messages;
+        const m = b?.[b.length - 1];
+        if (a && b && m && m.id !== a[a.length - 1]?.id) play(m.from === 'me' ? 'msg_send' : 'msg_receive', { volume: 0.8 });
+      }
+
+      if (s.clipboard && s.clipboard !== p.clipboard) play('copy');
+
+      if (s.ui.windows !== p.ui.windows)
+        for (const k of Object.keys(s.ui.windows) as PcAppId[]) {
+          const a = p.ui.windows[k];
+          const b = s.ui.windows[k];
+          if (!a || a === b) continue;
+          if (!a.open && b.open) play('window_open');
+          else if (a.open && !b.open) play('window_close');
+          else if (b.open && !a.minimized && b.minimized) play('window_min');
+          else if (b.open && a.minimized && !b.minimized) play('window_open', { volume: 0.7 });
+        }
+
+      if (s.ui.phoneLocked !== p.ui.phoneLocked) play(s.ui.phoneLocked ? 'phone_lock' : 'phone_unlock');
+      else if (s.ui.phoneApp !== p.ui.phoneApp) play(s.ui.phoneApp ? 'phone_app_open' : 'phone_app_close');
+
+      if (s.banks !== p.banks) {
+        let delta = 0;
+        let moved = false;
+        let alarm = false;
+        for (const id of Object.keys(s.banks) as BankId[]) {
+          const a = p.banks[id];
+          const b = s.banks[id];
+          if (!a || a === b) continue;
+          if (b.balance !== a.balance) (delta += b.balance - a.balance), (moved = true);
+          if (b.status !== a.status && (b.status === 'request115' || b.status === 'restricted115')) alarm = true;
+        }
+        if (alarm) play('alarm', undefined, 3000);
+        if (delta >= 1 && !cashToast) play('cash_in', undefined, 600);
+        else if (delta <= -1) play('cash_out', undefined, 600);
+        else if (moved && Math.abs(delta) < 1) play('coins', { volume: 0.5 }, 600);
+      }
+      if (s.block161 && !p.block161) play('alarm', undefined, 3000);
+      if (s.ui.chapterCard != null && p.ui.chapterCard == null) play('chapter');
+      if (s.cutscene && !p.cutscene) play('cine_whoosh');
+      if (s.stats.scamsCaught > p.stats.scamsCaught) play('success_big');
+      if (s.stats.scamsMissed > p.stats.scamsMissed) play('fail');
     });
+    return () => {
+      unsub();
+      offUi();
+    };
   }, []);
 }
