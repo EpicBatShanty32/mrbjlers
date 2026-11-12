@@ -8,8 +8,10 @@ import QuestBar from './ui/shell/QuestBar';
 import Phone from './ui/shell/Phone';
 import { ChapterCard, Cutscene, EndingScreen } from './ui/cutscene/Cutscene';
 import { useGameLoop, useSoundEffects } from './ui/common/hooks';
+import { useAudioDirector } from './audio';
 
 export default function App() {
+  useAudioDirector();
   const hydrated = useGame((s) => s.hydrated);
   const menu = useGame((s) => s.menu || !s.started);
   const [narrow, setNarrow] = useState(() => window.innerWidth < 1100 || window.innerHeight < 600);
