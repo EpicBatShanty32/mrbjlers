@@ -15,7 +15,7 @@ import { Island } from '../phone/os/Island';
 import { LockScreen } from '../phone/os/LockScreen';
 import { StatusBar } from '../phone/os/StatusBar';
 import { Wallpaper } from '../phone/os/wallpapers';
-import { CHROME, DEVICES, resetFace, showHud, unlock, useOS, useTier, type Device } from '../phone/os/state';
+import { CHROME, DEVICES, lightBottom, resetFace, showHud, unlock, useOS, useTier, type Device } from '../phone/os/state';
 
 /** The smartphone: device frame per `hero.phoneTier` around an iOS-style shell. */
 export default function Phone() {
@@ -96,7 +96,7 @@ export default function Phone() {
                 <NotificationCenter />
                 <ControlCenter />
                 <Hud tier={tier} />
-                <HomeIndicator dark={!light} visible={!!app || locked || cc || nc} />
+                <HomeIndicator dark={!overlay && lightBottom(app)} visible={!!app || locked || cc || nc} />
                 {tier === 0 && <Crack />}
                 <div className="pointer-events-none absolute inset-0 z-[86]" style={{ background: 'linear-gradient(118deg, rgba(255,255,255,.075) 0%, rgba(255,255,255,.02) 24%, transparent 40%)' }} />
                 <div className="pointer-events-none absolute inset-0 z-[90] bg-black transition-opacity duration-300" style={{ opacity: (1 - clamp(bright, 0.35, 1)) * 0.85 }} />
@@ -214,7 +214,7 @@ const CRACK = (() => {
     let a = Math.PI * (0.94 + (i / 9) * 0.72) + (r() - 0.5) * 0.2;
     let x = ox, y = oy;
     const pts = [[x, y]];
-    const len = i === 4 ? 300 : 50 + r() * 130;
+    const len = i === 4 ? 190 : 40 + r() * 110;
     for (let l = 0; l < len; ) {
       const s = 10 + r() * 24;
       a += (r() - 0.5) * 0.5;

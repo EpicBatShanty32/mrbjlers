@@ -10,6 +10,7 @@ import { cn } from '../../common/kit';
 import { AppIcon, notifIconId } from './icons';
 import { UsdtDot } from './Island';
 import { FaceGlyph } from './kit';
+import { Wallpaper } from './wallpapers';
 import { DEVICES, ORDER_COLOR, ORDER_LABEL, agoStr, calendar, faceScan, openNotif, unlock, useBattery, useLiveOrder, useOS, useTier, weatherOf } from './state';
 
 export function LockScreen() {
@@ -21,6 +22,7 @@ export function LockScreen() {
   const face = useOS((s) => s.face);
   const aod = useOS((s) => s.aod);
   const torch = useOS((s) => s.torch);
+  const wallpaper = useSettings((s) => s.phoneWallpaper);
   const dragged = useRef(false);
   const [shot, setShot] = useState(0);
   const cal = calendar(now);
@@ -47,6 +49,7 @@ export function LockScreen() {
       onPointerDown={() => faceScan()}
       onClick={() => !dragged.current && unlock()}
     >
+      <Wallpaper id={wallpaper} />
       <motion.div className="pointer-events-none absolute inset-0 bg-black" initial={false} animate={{ opacity: aod ? 0.74 : 0.08 }} transition={{ duration: 1.1 }} />
       <div className="absolute inset-x-0 flex flex-col items-center" style={{ top: tier ? dev.sb + 2 : 32 }}>
         <div className="flex h-[24px] items-center justify-center" style={fade}>
@@ -165,8 +168,8 @@ function LiveActivity() {
       <div className="flex items-center gap-[2.6cqw]">
         <UsdtDot size={34} />
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[3.2cqw] text-white/60">{o.ex === 'rapira' ? 'Rapira' : 'Bybit'} P2P · {o.side === 'buy' ? 'Покупка' : 'Продажа'}</div>
-          <div className="truncate text-[4cqw] font-semibold">{fmtUsdt(o.usdt)} · {fmtRub(o.rub)}</div>
+          <div className="truncate text-[3.2cqw] text-white/60">{o.ex === 'rapira' ? 'Rapira' : 'Bybit'} P2P · {o.side === 'buy' ? 'Покупка' : 'Продажа'} · {fmtRub(o.rub)}</div>
+          <div className="truncate text-[4.2cqw] font-semibold">{fmtUsdt(o.usdt)}</div>
         </div>
         <div className="text-right">
           <div className="num text-[5.4cqw] leading-none font-semibold" style={{ color: c }}>{o.t}</div>

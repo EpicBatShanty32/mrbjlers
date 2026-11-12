@@ -61,8 +61,8 @@ function Notch() {
 type Mode = 'idle' | 'face' | 'flash' | 'hud' | 'order' | 'music' | 'xorder' | 'xmusic';
 // width (cqw), height (px), radius (px)
 const SZ: Record<Mode, [string, number, number]> = {
-  idle: ['32.5cqw', 35, 18], face: ['36cqw', 134, 46], flash: ['92cqw', 60, 30], hud: ['56cqw', 35, 18],
-  order: ['58cqw', 35, 18], music: ['52cqw', 35, 18], xorder: ['94cqw', 172, 44], xmusic: ['94cqw', 172, 44],
+  idle: ['32.5cqw', 35, 18], face: ['36cqw', 134, 46], flash: ['92cqw', 60, 30], hud: ['46cqw', 35, 18],
+  order: ['46cqw', 35, 18], music: ['44cqw', 35, 18], xorder: ['94cqw', 172, 44], xmusic: ['94cqw', 172, 44],
 };
 const stop = (f: () => void) => (e: MouseEvent) => {
   e.stopPropagation();
@@ -100,6 +100,8 @@ function DynamicIsland({ tier }: { tier: number }) {
   useEffect(() => {
     if (expanded && mode !== 'xorder' && mode !== 'xmusic' && mode !== 'face' && mode !== 'flash') useOS.getState().set({ island: '' });
   }, [mode, expanded]);
+  const split = tier === 2 && mode === 'order' && musicOn;
+  useEffect(() => useOS.getState().set({ split }), [split]);
 
   const [w, h, r] = SZ[mode];
   const big = mode === 'face' || mode === 'flash' || mode === 'xorder' || mode === 'xmusic';
@@ -194,13 +196,13 @@ function DynamicIsland({ tier }: { tier: number }) {
         </AnimatePresence>
       </motion.div>
       <AnimatePresence>
-        {tier === 2 && mode === 'order' && musicOn && (
+        {split && (
           <motion.button
             type="button"
             key="bubble"
             onClick={() => useOS.getState().set({ island: 'music' })}
             className="absolute top-[11px] z-[80] flex h-[35px] w-[35px] items-center justify-center rounded-full bg-black"
-            style={{ left: 'calc(50% + 29cqw + 6px)' }}
+            style={{ left: 'calc(50% + 23cqw + 6px)' }}
             initial={{ scale: 0, x: -30 }}
             animate={{ scale: 1, x: 0 }}
             exit={{ scale: 0, x: -30 }}

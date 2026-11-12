@@ -59,6 +59,13 @@ export const CHROME: Record<PhoneAppId, { top: string; bottom: string; light: bo
   music: { top: '#000000', bottom: '#000000', light: true },
 };
 
+const luma = (hex: string) => {
+  const n = parseInt(hex.slice(1), 16);
+  return ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000;
+};
+/** Home indicator turns dark over light app bottoms. */
+export const lightBottom = (app: PhoneAppId) => luma(CHROME[app].bottom) > 160;
+
 export const APP_OF: Record<string, PhoneAppId | null> = {
   sber: 'sber', tbank: 'tbank', alfa: 'alfa', telegram: 'telegram', avito: 'avito', wallet: 'wallet', sms: 'auth', auth: 'auth',
   settings: 'settings', music: 'music', system: null,
@@ -66,7 +73,7 @@ export const APP_OF: Record<string, PhoneAppId | null> = {
 
 // ───────── OS-level UI state (not saved) ─────────
 export interface OsState {
-  cc: boolean; nc: boolean; spot: boolean;
+  cc: boolean; nc: boolean;
   wifi: boolean; bt: boolean; cell: boolean; air: boolean; torch: boolean; lowPower: boolean; rotLock: boolean; aodOn: boolean;
   face: 'idle' | 'scan' | 'ok' | 'ready';
   flash: { key: string; app: string; title: string; link?: string } | null;
@@ -74,13 +81,15 @@ export interface OsState {
   aod: boolean;
   /** Expanded Dynamic Island activity ('' = compact). */
   island: '' | 'order' | 'music';
+  /** Pro Max shows a second activity as a bubble right of the island. */
+  split: boolean;
   set: (p: Partial<OsState>) => void;
 }
 
 export const useOS = create<OsState>()((set) => ({
-  cc: false, nc: false, spot: false,
+  cc: false, nc: false,
   wifi: true, bt: true, cell: true, air: false, torch: false, lowPower: false, rotLock: true, aodOn: true,
-  face: 'idle', flash: null, hud: null, aod: false, island: '',
+  face: 'idle', flash: null, hud: null, aod: false, island: '', split: false,
   set: (p) => set(p),
 }));
 const os = () => useOS.getState();

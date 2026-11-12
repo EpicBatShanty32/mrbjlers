@@ -119,7 +119,7 @@ function CC() {
           <div className="flex items-start gap-[2.4cqw]">
             {info ? <Cover id={info.id} size="11.5cqw" radius="22%" /> : <div className="h-[11.5cqw] w-[11.5cqw] rounded-[2.6cqw] bg-white/15" />}
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[3.5cqw] font-semibold">{info?.title ?? 'Не исполняется'}</div>
+              <div className="line-clamp-2 text-[3.4cqw] leading-tight font-semibold">{info?.title ?? 'Не исполняется'}</div>
               <div className="truncate text-[3.1cqw] text-white/60">{info ? (snap.manual ? info.artist : 'Адаптивный саундтрек') : 'Музыка'}</div>
             </div>
           </div>
@@ -137,11 +137,11 @@ function CC() {
           })}
           className={cn('col-span-2 flex items-center gap-[2.4cqw] rounded-full px-[2.6cqw] text-left transition-colors', dnd ? 'bg-white text-black' : 'lg-btn')}
         >
-          <span className={cn('flex h-[12cqw] w-[12cqw] items-center justify-center rounded-full', dnd ? 'bg-[#5E5CE6] text-white' : 'bg-white/15')}>
-            <Moon size={19} fill="currentColor" strokeWidth={0} />
+          <span className={cn('flex h-[10.5cqw] w-[10.5cqw] shrink-0 items-center justify-center rounded-full', dnd ? 'bg-[#5E5CE6] text-white' : 'bg-white/15')}>
+            <Moon size={18} fill="currentColor" strokeWidth={0} />
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-[3.5cqw] font-semibold">{dnd ? 'Не беспокоить' : 'Фокусирование'}</span>
+            <span className="block text-[3.2cqw] leading-tight font-semibold">{dnd ? 'Не беспокоить' : 'Фокусирование'}</span>
             <span className="block text-[3cqw] opacity-60">{dnd ? 'Вкл.' : 'Выкл.'}</span>
           </span>
         </button>

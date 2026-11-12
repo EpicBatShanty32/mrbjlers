@@ -73,7 +73,7 @@ function Row({ icon, title, sub, value, right, chevron, check, onClick, big }: {
         <div className={cn('truncate', big ? 'text-[19px] font-semibold' : 'text-[15.5px]')}>{title}</div>
         {sub && <div className="truncate text-[12.5px] text-white/50">{sub}</div>}
       </div>
-      {value && <span className="max-w-[48%] truncate text-[15px] text-white/50">{value}</span>}
+      {value && <span className="max-w-[62%] truncate text-[15px] text-white/50">{value}</span>}
       {right}
       {check && <Check size={18} className="text-[#0A84FF]" strokeWidth={2.8} />}
       {chevron && <ChevronRight size={18} className="-mr-1 text-white/30" strokeWidth={2.6} />}

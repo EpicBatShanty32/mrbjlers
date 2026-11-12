@@ -26,6 +26,7 @@ const launch = (id: PhoneAppId) => () => {
   if (Date.now() - swipedAt > 120) useGame.getState().phoneOpen(id);
 };
 const DOCK: PhoneAppId[] = ['telegram', 'auth', 'music', 'settings'];
+const BANK_SHORT: Record<BankId, string> = { sber: 'Сбер', tbank: 'Т-Банк', alfa: 'Альфа' };
 const PAGES = 2;
 const spring = { type: 'spring', stiffness: 300, damping: 34 } as const;
 
@@ -137,8 +138,9 @@ function BalanceWidget() {
         {list.length ? (
           list.map(([b, v]) => (
             <div key={b} className="flex items-center gap-[1.6cqw] text-[3.1cqw]">
-              <span className="h-[4.6cqw] w-[4.6cqw] overflow-hidden rounded-[1.2cqw]"><IconArt id={b} /></span>
-              <span className="num ml-auto text-white/85">{fmtRub(v)}</span>
+              <span className="h-[4.6cqw] w-[4.6cqw] shrink-0 overflow-hidden rounded-[1.2cqw]"><IconArt id={b} /></span>
+              <span className="truncate text-white/60">{BANK_SHORT[b]}</span>
+              <span className="num ml-auto shrink-0 text-white/90">{fmtRub(v)}</span>
             </div>
           ))
         ) : (
@@ -198,7 +200,7 @@ function CalendarWidget() {
           <span className="w-[0.9cqw] rounded-full bg-[#30D158]" />
           <div className="min-w-0">
             <div className="truncate text-[3.3cqw] font-semibold">Глава {chapter}</div>
-            <div className="truncate text-[2.9cqw] text-white/55">{c.monthNom} · P2P: С НУЛЯ</div>
+            <div className="truncate text-[2.9cqw] text-white/55">{c.monthNom}, {c.year}</div>
           </div>
         </div>
       </div>
