@@ -115,7 +115,7 @@ function Main({ go }: { go: (s: Screen) => void }) {
           {amlHint && !w.aml && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
               <div className="mt-3 flex items-center gap-2 rounded-2xl bg-[#1D2633] px-3.5 py-2.5 text-[12.5px] text-[#B6C0CC]">
-                <Lock size={14} className="shrink-0 text-[#8994A3]" /> AML-скринер. Откроется после встречи с Маратом
+                <Lock size={14} className="shrink-0 text-[#8994A3]" /> AML-скринер. Откроется позже по сюжету
               </div>
             </motion.div>
           )}
