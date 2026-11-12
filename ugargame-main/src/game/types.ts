@@ -11,7 +11,7 @@ export type Speed = 0 | 1 | 2 | 5;
 export type CharacterId =
   | 'artem' | 'marat' | 'danya' | 'pasha' | 'ivan' | 'kapul' | 'karim' | 'sanya' | 'grisha' | 'max' | 'lera';
 
-export type PhoneAppId = 'sber' | 'tbank' | 'alfa' | 'wallet' | 'telegram' | 'avito' | 'auth';
+export type PhoneAppId = 'sber' | 'tbank' | 'alfa' | 'wallet' | 'telegram' | 'avito' | 'auth' | 'settings' | 'music';
 export type PcAppId = 'browser' | 'files' | 'calc' | 'notes';
 export type BrowserTab = 'bybit' | 'rapira' | 'sheet' | 'tax' | 'shop';
 
@@ -24,8 +24,10 @@ export interface Hero {
   attentionBonus: number;
   lastSleepAt: number;
   location: 'novozarovsk' | 'moscow';
-  pcTier: 0 | 1 | 2;
-  phoneTier: 0 | 1;
+  /** 0 old laptop · 1 Ryzen 5 · 2 Ryzen 9 workstation · 3 Mac (macOS desktop) */
+  pcTier: 0 | 1 | 2 | 3;
+  /** 0 used iPhone 11 · 1 iPhone 15 Pro · 2 iPhone 18 Pro Max */
+  phoneTier: 0 | 1 | 2;
   home: 'room' | 'flat' | 'office';
   car: null | 'lada' | 'bmw_leasing';
 }

@@ -141,7 +141,7 @@ export function Aml({ onBack }: { onBack: () => void }) {
             <Lock size={34} />
           </div>
           <div className="mt-4 text-[17px] font-semibold text-white">Недоступно</div>
-          <div className="mt-1 text-[13.5px] leading-snug text-[#8994A3]">Откроется после встречи с Маратом</div>
+          <div className="mt-1 text-[13.5px] leading-snug text-[#8994A3]">Откроется позже по сюжету</div>
         </div>
       </div>
     );

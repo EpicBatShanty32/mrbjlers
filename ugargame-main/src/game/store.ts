@@ -4,7 +4,7 @@ import { immer } from 'zustand/middleware/immer';
 import type {
   BankId, BrowserTab, CharacterId, CharacterState, Clipboard, Difficulty, ExchangeAccount, ExchangeId, GameState, MyAd, Network, P2POrder, PcAppId, PhoneAppId, Speed, TaxRegime, Toast, WindowState,
 } from './types';
-import { BANKS, CHARACTERS, RETAIL, SHOP } from './data/static';
+import { BANKS, CHARACTERS, RETAIL, SHOP, shopOwned } from './data/static';
 import { addFile, attention, emit, hero, ledger, netWorth, notify, profitSince, sms, taxRate, toast as toastFx, totalRub } from './engine/core';
 import * as banks from './engine/banks';
 import * as orders from './engine/orders';
@@ -687,7 +687,7 @@ export const useGame = create<Store>()(
             const item = SHOP.find((s) => s.id === itemId);
             if (!item) return { ok: false, error: 'Нет такого товара' };
             if (d.chapter < item.minChapter) return { ok: false, error: `Доступно с главы ${item.minChapter}` };
-            const owned = (itemId === 'pc1' && d.hero.pcTier >= 1) || (itemId === 'pc2' && d.hero.pcTier >= 2) || (itemId === 'phone1' && d.hero.phoneTier >= 1) || (itemId === 'flat' && d.hero.home !== 'room') || (itemId === 'office' && d.flags.officeRented) || (itemId === 'lada' && d.hero.car === 'lada') || (itemId === 'bmw' && d.hero.car === 'bmw_leasing') || (itemId === 'aml' && d.flags.amlPro);
+            const owned = shopOwned(d, itemId);
             if (owned) return { ok: false, error: 'Уже куплено' };
             const r = banks.spend(d, bank, item.price, item.title);
             if (!r.ok) return r;
@@ -696,6 +696,8 @@ export const useGame = create<Store>()(
               case 'pc1': d.hero.pcTier = 1; break;
               case 'pc2': d.hero.pcTier = 2; break;
               case 'phone1': d.hero.phoneTier = 1; break;
+              case 'phone2': d.hero.phoneTier = 2; break;
+              case 'mac': d.hero.pcTier = 3; break;
               case 'flat': d.hero.home = 'flat'; d.hero.location = 'moscow'; hero(d, { stress: -10 }); break;
               case 'office': d.flags.officeRented = true; for (const id of ['karim', 'pasha', 'danya', 'ivan', 'kapul'] as CharacterId[]) if (d.characters[id].inTeam) c.trust(id, 5); break;
               case 'lada': d.hero.car = 'lada'; c.trust('marat', 5); break;

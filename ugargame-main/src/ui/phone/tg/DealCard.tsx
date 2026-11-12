@@ -140,7 +140,7 @@ export function DealCard({ dealId, fallback }: { dealId: string; fallback: strin
                   </button>
                 </>
               ) : (
-                'AML-скринер откроется в Tonkeeper после встречи с Маратом'
+                'AML-скринер откроется в Tonkeeper позже по сюжету'
               )}
             </div>
           )}

@@ -1,0 +1,120 @@
+/* Cinematic layer (cutscenes, chapter card, ending). Motion is transform/opacity only. */
+
+/* ── camera ── */
+@keyframes cs-kb { from { transform: scale(1.04) translate3d(-1.1%, .5%, 0); } to { transform: scale(1.12) translate3d(1.1%, -.7%, 0); } }
+.cs-kb { position: absolute; inset: 0; animation: cs-kb 36s ease-in-out infinite alternate; will-change: transform; }
+@keyframes cs-par { from { transform: translate3d(calc(var(--px, 1%) * -1), 0, 0) scale(var(--ps, 1.03)); } to { transform: translate3d(var(--px, 1%), 0, 0) scale(var(--ps, 1.03)); } }
+.cs-par { position: absolute; inset: 0; animation: cs-par var(--pd, 26s) ease-in-out infinite alternate; will-change: transform; }
+@keyframes cs-shake {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  10% { transform: translate3d(-10px, 5px, 0) rotate(-.4deg); }
+  22% { transform: translate3d(9px, -6px, 0) rotate(.35deg); }
+  36% { transform: translate3d(-7px, 3px, 0) rotate(-.2deg); }
+  52% { transform: translate3d(5px, -2px, 0); }
+  70% { transform: translate3d(-2px, 1px, 0); }
+}
+.cs-shake { animation: cs-shake .75s cubic-bezier(.36, .07, .19, .97) both; }
+@keyframes cs-sway { 0%, 100% { transform: translate3d(0, 0, 0) rotate(0); } 30% { transform: translate3d(0, 3px, 0) rotate(.15deg); } 70% { transform: translate3d(0, -2px, 0) rotate(-.12deg); } }
+.cs-sway { animation: cs-sway 3.4s ease-in-out infinite; }
+
+/* ── weather ── */
+.cs-rain-wrap { position: absolute; inset: -25%; transform: rotate(var(--ang, 9deg)); pointer-events: none; }
+@keyframes cs-fall { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(0, var(--th), 0); } }
+.cs-rain { position: absolute; left: 0; right: 0; bottom: 0; top: calc(var(--th) * -1); background-size: var(--tw) var(--th); animation: cs-fall var(--rd) linear infinite; will-change: transform; }
+@keyframes cs-ripple { 0% { transform: scale(.1); opacity: 0; } 12% { opacity: .8; } 100% { transform: scale(1); opacity: 0; } }
+.cs-ripple { animation: cs-ripple 1.7s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes cs-drip { 0% { transform: translate3d(0, -20%, 0); opacity: 0; } 8% { opacity: .9; } 100% { transform: translate3d(0, 140%, 0); opacity: .6; } }
+.cs-drip { animation: cs-drip var(--dd, 7s) cubic-bezier(.6, 0, .9, .6) infinite; }
+@keyframes cs-fog { from { transform: translate3d(-8%, 0, 0); } to { transform: translate3d(8%, 0, 0); } }
+.cs-fog { animation: cs-fog 42s ease-in-out infinite alternate; }
+@keyframes cs-flash { 0%, 89%, 100% { opacity: 0; } 90% { opacity: .6; } 91% { opacity: .05; } 92.5% { opacity: .4; } 95% { opacity: 0; } }
+.cs-lightning { animation: cs-flash 14s linear 2.5s infinite; }
+
+/* ── lights ── */
+@keyframes cs-flicker { 0%, 100% { opacity: 1; } 41% { opacity: 1; } 42% { opacity: .15; } 43% { opacity: .9; } 44.5% { opacity: .25; } 46% { opacity: 1; } 78% { opacity: .85; } }
+.cs-flicker { animation: cs-flicker var(--fd, 6s) steps(1, end) infinite; }
+@keyframes cs-blink { 0%, 100% { opacity: .12; } 4%, 10% { opacity: 1; } }
+.cs-blink { animation: cs-blink 2.4s ease-in-out infinite; }
+@keyframes cs-glow { 0%, 100% { opacity: var(--g0, .75); } 50% { opacity: 1; } }
+.cs-glow { animation: cs-glow var(--gd, 4s) ease-in-out infinite; }
+@keyframes cs-twinkle { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+.cs-twinkle { animation: cs-twinkle var(--td, 3s) ease-in-out infinite; }
+@keyframes cs-led { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+.cs-led { animation: cs-led 2.2s ease-in-out infinite; }
+@keyframes cs-hdd { 0%, 100% { opacity: .1; } 7% { opacity: 1; } 9% { opacity: .2; } 13% { opacity: .9; } 30% { opacity: .1; } 61% { opacity: 1; } 63% { opacity: .1; } }
+.cs-hdd { animation: cs-hdd 1.9s steps(1, end) infinite; }
+@keyframes cs-shimmer { 0%, 100% { transform: scaleX(1) translate3d(0, 0, 0); opacity: .85; } 50% { transform: scaleX(1.25) translate3d(1%, 0, 0); opacity: 1; } }
+.cs-shimmer { animation: cs-shimmer 1.3s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes cs-rays { from { opacity: .45; transform: rotate(-2.5deg); } to { opacity: .95; transform: rotate(2.5deg); } }
+.cs-rays { animation: cs-rays 9s ease-in-out infinite alternate; transform-origin: 85% 0%; }
+@keyframes cs-alert { 0%, 100% { opacity: 0; } 45% { opacity: .55; } }
+.cs-alert { animation: cs-alert 1.7s ease-in-out infinite; }
+@keyframes cs-headlights { 0%, 100% { opacity: 1; } 6%, 14% { opacity: .15; } 10%, 18% { opacity: 1; } }
+.cs-headlights { animation: cs-headlights 5s ease-in-out 1 both; }
+@keyframes cs-drive { 0% { transform: translate3d(0, 0, 0); } 18% { transform: translate3d(-6px, 0, 0); } 100% { transform: translate3d(1300px, 0, 0); } }
+.cs-drive { animation: cs-drive 3.6s cubic-bezier(.6, 0, .85, .5) .3s forwards; }
+
+/* ── particles & objects ── */
+@keyframes cs-bokeh { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(var(--bx, 12px), var(--by, -18px), 0) scale(1.15); } }
+.cs-bokeh { animation: cs-bokeh var(--bd, 9s) ease-in-out infinite alternate; }
+@keyframes cs-steam { 0% { transform: translate3d(0, 0, 0) scale(.6); opacity: 0; } 25% { opacity: .55; } 100% { transform: translate3d(var(--sx, 8px), -90px, 0) scale(1.9); opacity: 0; } }
+.cs-steam { animation: cs-steam var(--sd, 4.5s) ease-out infinite; transform-box: fill-box; transform-origin: center bottom; }
+@keyframes cs-scroll { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-50%, 0, 0); } }
+.cs-scroll { position: absolute; top: 0; bottom: 0; left: 0; width: 200%; display: flex; animation: cs-scroll var(--sd, 20s) linear infinite; will-change: transform; }
+.cs-scroll > * { width: 50%; height: 100%; flex: none; }
+@keyframes cs-rise { from { transform: translate3d(0, 30px, 0); } to { transform: translate3d(var(--rx, 0px), -60px, 0); } }
+.cs-rise { animation: cs-rise var(--rd, 14s) ease-in-out infinite alternate; }
+@keyframes cs-buzz { 0%, 100% { transform: translate3d(0, 0, 0) rotate(0); } 10%, 30%, 50% { transform: translate3d(-2px, 0, 0) rotate(-1.5deg); } 20%, 40%, 60% { transform: translate3d(2px, 0, 0) rotate(1.5deg); } 70% { transform: none; } }
+.cs-buzz { animation: cs-buzz .5s linear 4; transform-box: fill-box; transform-origin: center; }
+@keyframes cs-draw { 0% { stroke-dashoffset: 1; } 55%, 80% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+.cs-draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: cs-draw var(--dd, 7s) ease-in-out infinite; }
+@keyframes cs-bar { 0% { transform: scaleY(.05); } 50%, 85% { transform: scaleY(1); } 100% { transform: scaleY(.05); } }
+.cs-bar { animation: cs-bar 7s ease-in-out infinite; transform-box: fill-box; transform-origin: bottom; }
+@keyframes cs-spin { to { transform: rotate(360deg); } }
+.cs-spin { animation: cs-spin 60s linear infinite; transform-box: fill-box; transform-origin: center; }
+
+/* ── post FX ── */
+@keyframes cs-grain {
+  0%, 100% { transform: translate3d(0, 0, 0); } 10% { transform: translate3d(-5%, -8%, 0); } 20% { transform: translate3d(-12%, 4%, 0); }
+  30% { transform: translate3d(6%, -18%, 0); } 40% { transform: translate3d(-4%, 20%, 0); } 50% { transform: translate3d(-12%, 8%, 0); }
+  60% { transform: translate3d(14%, 0, 0); } 70% { transform: translate3d(0, 12%, 0); } 80% { transform: translate3d(3%, 28%, 0); } 90% { transform: translate3d(-8%, 8%, 0); }
+}
+.cs-grain { position: absolute; inset: -60%; opacity: .11; mix-blend-mode: overlay; pointer-events: none; animation: cs-grain 1s steps(1, end) infinite; }
+.cs-vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(120% 95% at 50% 46%, transparent 52%, rgba(0, 0, 0, .55) 82%, rgba(0, 0, 0, .9) 100%); }
+.cs-sub { text-shadow: 0 2px 14px rgba(0, 0, 0, .95), 0 0 3px rgba(0, 0, 0, .9); }
+@keyframes cs-caret { 0%, 100% { opacity: 1; } 50% { opacity: .15; } }
+.cs-caret { animation: cs-caret .9s steps(1, end) infinite; }
+@keyframes cs-nudge { 0%, 100% { transform: translate3d(0, 0, 0); opacity: .55; } 50% { transform: translate3d(0, 3px, 0); opacity: 1; } }
+.cs-nudge { animation: cs-nudge 1.6s ease-in-out infinite; }
+@keyframes cs-sheen { from { background-position: 200% 0; } to { background-position: -100% 0; } }
+.cs-sheen { background-size: 220% 100%; animation: cs-sheen 6s ease-in-out infinite; }
+@keyframes cs-roll { from { transform: translate3d(0, 100vh, 0); } to { transform: translate3d(0, -100%, 0); } }
+.cs-roll { animation: cs-roll var(--rl, 48s) linear forwards; }
+
+/* ── portraits ── */
+@keyframes cs-breathe { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(0, -1.1%, 0) scale(1.008); } }
+.cs-breathe { animation: cs-breathe 4.6s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes cs-mouth { 0%, 100% { transform: scaleY(.25); } 25% { transform: scaleY(1); } 50% { transform: scaleY(.45); } 75% { transform: scaleY(.85); } }
+.cs-mouth { transform: scaleY(.12); transform-box: fill-box; transform-origin: center; }
+.cs-talking .cs-mouth { animation: cs-mouth .34s ease-in-out infinite; }
+@keyframes cs-eyes { 0%, 95%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.08); } }
+.cs-eyes { animation: cs-eyes 5.2s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes cs-rimpulse { 0%, 100% { opacity: .8; } 50% { opacity: 1; } }
+.cs-talking .cs-rim { animation: cs-rimpulse .7s ease-in-out infinite; }
+
+/* reduce motion: keep light changes, drop camera/parallax movement */
+.cs-reduce .cs-kb, .cs-reduce .cs-par, .cs-reduce .cs-shake, .cs-reduce .cs-sway, .cs-reduce .cs-fog,
+.cs-reduce .cs-scroll, .cs-reduce .cs-rise, .cs-reduce .cs-bokeh, .cs-reduce .cs-grain, .cs-reduce .cs-breathe,
+.cs-reduce .cs-lightning, .cs-reduce .cs-buzz { animation: none !important; }
+.cs-reduce .cs-rain { animation-duration: calc(var(--rd) * 3); }
+
+/* ── scene extras ── */
+@keyframes cs-drop { 0% { transform: translate3d(0, -60px, 0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translate3d(-40px, 430px, 0); opacity: 0; } }
+.cs-drop { animation: cs-drop var(--dd, .55s) linear infinite; }
+@keyframes cs-cars { from { transform: translate3d(-260px, 0, 0); } to { transform: translate3d(900px, 0, 0); } }
+.cs-cars { animation: cs-cars var(--cd, 6s) linear infinite; }
+@keyframes cs-birds { from { transform: translate3d(-160px, 30px, 0); } to { transform: translate3d(1800px, -140px, 0); } }
+.cs-birds { animation: cs-birds 40s linear infinite; }
+@keyframes cs-plunge { 0% { stroke-dashoffset: 1; } 70%, 100% { stroke-dashoffset: 0; } }
+.cs-plunge { stroke-dasharray: 1; stroke-dashoffset: 1; animation: cs-plunge 6s cubic-bezier(.5, 0, .9, .6) infinite; }
+.cs-reduce .cs-cars, .cs-reduce .cs-birds, .cs-reduce .cs-drop { animation-duration: 0s; animation-iteration-count: 1; }
