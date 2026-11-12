@@ -11,7 +11,7 @@ export type Speed = 0 | 1 | 2 | 5;
 export type CharacterId =
   | 'artem' | 'marat' | 'danya' | 'pasha' | 'ivan' | 'kapul' | 'karim' | 'sanya' | 'grisha' | 'max' | 'lera';
 
-export type PhoneAppId = 'sber' | 'tbank' | 'alfa' | 'wallet' | 'telegram' | 'avito' | 'auth';
+export type PhoneAppId = 'sber' | 'tbank' | 'alfa' | 'wallet' | 'telegram' | 'avito' | 'auth' | 'settings' | 'music';
 export type PcAppId = 'browser' | 'files' | 'calc' | 'notes';
 export type BrowserTab = 'bybit' | 'rapira' | 'sheet' | 'tax' | 'shop';
 

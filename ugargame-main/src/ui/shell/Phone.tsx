@@ -1,233 +1,252 @@
 import { useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { BatteryMedium, KeyRound, Lock, MessageSquareText, ScanFace, Send, ShoppingBag, Signal, Wallet, Wifi } from 'lucide-react';
+import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
+import { Bell, BellOff, Volume2, VolumeX } from 'lucide-react';
+import { audio } from '../../audio';
 import { useGame } from '../../game/store';
-import type { PhoneAppId, PhoneNotification } from '../../game/types';
-import { clamp, clockStr, dateStr } from '../../game/util';
+import { useSettings } from '../../game/settings';
+import { clamp } from '../../game/util';
 import { cn } from '../common/kit';
-import BankApp from '../phone/BankApp';
-import TelegramApp from '../phone/TelegramApp';
-import AvitoApp from '../phone/AvitoApp';
-import WalletApp from '../phone/WalletApp';
-import AuthApp from '../phone/AuthApp';
+import '../phone/os/os.css';
+import { AppLayer } from '../phone/os/AppLayer';
+import { Banner } from '../phone/os/Banner';
+import { ControlCenter, NotificationCenter, TopZones } from '../phone/os/Centers';
+import { Home } from '../phone/os/Home';
+import { Island } from '../phone/os/Island';
+import { LockScreen } from '../phone/os/LockScreen';
+import { StatusBar } from '../phone/os/StatusBar';
+import { Wallpaper } from '../phone/os/wallpapers';
+import { CHROME, DEVICES, resetFace, showHud, unlock, useOS, useTier, type Device } from '../phone/os/state';
 
-interface AppDef {
-  id: PhoneAppId;
-  name: string;
-  bg: string;
-  icon: React.ReactNode;
-}
-
-const APP_DEFS: AppDef[] = [
-  { id: 'sber', name: 'СберБанк', bg: 'linear-gradient(135deg,#1db954,#0f8a3c)', icon: <span className="text-[22px] font-black text-white">С</span> },
-  { id: 'tbank', name: 'Т-Банк', bg: '#FFDD2D', icon: <span className="flex h-8 w-8 items-center justify-center rounded-md bg-black/90 text-[18px] font-black text-[#FFDD2D]">Т</span> },
-  { id: 'alfa', name: 'Альфа', bg: '#EF3124', icon: <span className="text-[24px] font-black text-white">А</span> },
-  { id: 'telegram', name: 'Telegram', bg: 'linear-gradient(135deg,#37aee2,#1e96c8)', icon: <Send size={24} className="-ml-0.5 text-white" /> },
-  { id: 'avito', name: 'Барахолка', bg: '#ffffff', icon: <ShoppingBag size={24} className="text-[#00AAFF]" /> },
-  { id: 'wallet', name: 'Tonkeeper', bg: 'linear-gradient(135deg,#1c2a3c,#0b121b)', icon: <Wallet size={22} className="text-[#45AEF5]" /> },
-  { id: 'auth', name: 'SMS · 2FA', bg: 'linear-gradient(135deg,#4285F4,#2b5fd0)', icon: <div className="flex items-center gap-0.5"><KeyRound size={16} className="text-white" /><MessageSquareText size={14} className="text-white/80" /></div> },
-];
-
+/** The smartphone: device frame per `hero.phoneTier` around an iOS-style shell. */
 export default function Phone() {
+  const tier = useTier();
+  const dev = DEVICES[tier];
   const app = useGame((s) => s.ui.phoneApp);
   const locked = useGame((s) => s.ui.phoneLocked);
   const buzz = useGame((s) => s.ui.buzz);
-  const [shake, setShake] = useState(false);
+  const reduce = useSettings((s) => s.reduceMotion);
+  const bright = useSettings((s) => s.phoneBrightness);
+  const wallpaper = useSettings((s) => s.phoneWallpaper);
+  const cc = useOS((s) => s.cc);
+  const nc = useOS((s) => s.nc);
+  const aod = useOS((s) => s.aod);
+  const torch = useOS((s) => s.torch);
+  const screen = useRef<HTMLDivElement>(null);
   const lastTouch = useRef(Date.now());
+  const [shake, setShake] = useState(false);
+
   useEffect(() => {
     if (!buzz) return;
     setShake(true);
     const t = setTimeout(() => setShake(false), 520);
     return () => clearTimeout(t);
   }, [buzz]);
-  // Auto-lock after a while without touching the phone.
+  useEffect(() => {
+    if (locked) resetFace();
+    useOS.getState().set({ aod: false, cc: false, nc: false, island: '' });
+  }, [locked]);
+  // Auto-lock after inactivity; the Pro Max dims into Always-On while locked and idle.
   useEffect(() => {
     const id = setInterval(() => {
-      const s = useGame.getState();
-      if (!s.ui.phoneLocked && Date.now() - lastTouch.current > 150000 && !s.cutscene) s.phoneLock(true);
-    }, 5000);
+      const s = useGame.getState(), o = useOS.getState();
+      const idle = Date.now() - lastTouch.current;
+      if (!s.ui.phoneLocked && idle > 150000 && !s.cutscene) s.phoneLock(true);
+      else if (s.ui.phoneLocked && DEVICES[s.hero.phoneTier].aod && o.aodOn && !o.aod && !o.cc && o.face === 'idle' && idle > 15000) o.set({ aod: true });
+    }, 2500);
     return () => clearInterval(id);
   }, []);
+  const touch = () => {
+    lastTouch.current = Date.now();
+    if (useOS.getState().aod) useOS.getState().set({ aod: false });
+  };
+
+  const overlay = cc || nc || locked || !app;
+  const light = overlay || CHROME[app].light;
   return (
-    <div className="flex h-full items-center justify-center">
-      <div
-        onPointerDown={() => (lastTouch.current = Date.now())}
-        className={cn('relative aspect-[380/780] h-full max-h-[820px] rounded-[46px] bg-[#0b0b0d] p-[11px] shadow-[0_0_0_2px_#2a2c33,0_30px_80px_-20px_rgba(0,0,0,.8)]', shake && 'animate-shake')}
-      >
-        <div className="absolute top-24 -left-[3px] h-8 w-[3px] rounded-l bg-[#2a2c33]" />
-        <div className="absolute top-36 -left-[3px] h-14 w-[3px] rounded-l bg-[#2a2c33]" />
-        <div className="absolute top-32 -right-[3px] h-20 w-[3px] rounded-r bg-[#2a2c33]" />
-        <div className="relative flex h-full w-full flex-col overflow-hidden rounded-[36px] bg-black">
-          <StatusBar dark={locked || !app || app === 'tbank' || app === 'telegram' || app === 'wallet' || app === 'auth'} />
-          <div className="relative min-h-0 flex-1">
-            {locked ? <LockScreen /> : app ? <AppHost app={app} /> : <Home />}
+    <MotionConfig reducedMotion={reduce ? 'always' : 'never'}>
+      <div className="flex h-full items-center justify-center">
+        <div
+          data-phone
+          data-tier={tier}
+          onPointerDownCapture={touch}
+          className={cn('relative h-full select-none', shake && !reduce && 'os-buzz', reduce && 'os-reduce')}
+          style={{ aspectRatio: String(dev.aspect), maxHeight: dev.maxH }}
+        >
+          <div className="pointer-events-none absolute -inset-20 transition-opacity duration-500" style={{ opacity: torch ? 1 : 0, background: 'radial-gradient(closest-side, rgba(255,247,220,.2), transparent)' }} />
+          <SideButtons tier={tier} dev={dev} />
+          <div
+            className="absolute inset-0 z-10"
+            style={{
+              borderRadius: dev.screenR + dev.bezel + dev.frame,
+              background: dev.metal,
+              padding: dev.frame,
+              boxShadow: '0 40px 70px -28px rgba(0,0,0,.92), 0 16px 30px -16px rgba(0,0,0,.7), inset 0 0 0 .5px rgba(255,255,255,.35), inset 0 1px 1.5px rgba(255,255,255,.5), inset 0 -1px 2px rgba(0,0,0,.45)',
+            }}
+          >
+            <div className="h-full w-full bg-black" style={{ borderRadius: dev.screenR + dev.bezel, padding: dev.bezel, boxShadow: 'inset 0 0 0 1px #000, inset 0 0 0 2px rgba(255,255,255,.05)' }}>
+              <div ref={screen} className="os-screen relative h-full w-full overflow-hidden bg-black" style={{ borderRadius: dev.screenR }}>
+                <Wallpaper id={wallpaper} />
+                <Home />
+                <AppLayer app={app} screen={screen} />
+                <AnimatePresence>{locked && <LockScreen key="lock" />}</AnimatePresence>
+                <StatusBar light={light} carrier={locked || cc} hidden={aod} />
+                <TopZones />
+                <Island />
+                <Banner />
+                <NotificationCenter />
+                <ControlCenter />
+                <Hud tier={tier} />
+                <HomeIndicator dark={!light} visible={!!app || locked || cc || nc} />
+                {tier === 0 && <Crack />}
+                <div className="pointer-events-none absolute inset-0 z-[86]" style={{ background: 'linear-gradient(118deg, rgba(255,255,255,.075) 0%, rgba(255,255,255,.02) 24%, transparent 40%)' }} />
+                <div className="pointer-events-none absolute inset-0 z-[90] bg-black transition-opacity duration-300" style={{ opacity: (1 - clamp(bright, 0.35, 1)) * 0.85 }} />
+              </div>
+            </div>
           </div>
-          {!locked && (
-            <button onClick={() => useGame.getState().phoneOpen(null)} className={cn('flex h-[22px] shrink-0 items-center justify-center', app ? 'bg-black' : 'bg-transparent')} title="Домой">
-              <span className="h-[5px] w-28 rounded-full bg-white/70" />
-            </button>
-          )}
-          <Banner />
         </div>
       </div>
-    </div>
+    </MotionConfig>
   );
 }
 
-function StatusBar({ dark }: { dark: boolean }) {
-  const now = useGame((s) => Math.floor(s.now));
-  const battery = useGame((s) => Math.round(clamp(100 - (s.now - s.hero.lastSleepAt) / 16, 7, 100)));
-  return (
-    <div className={cn('relative flex h-[34px] shrink-0 items-center justify-between px-6 text-[13px] font-semibold', dark ? 'bg-black text-white' : 'bg-white text-black')}>
-      <span className="num">{clockStr(now)}</span>
-      <div className="absolute top-[7px] left-1/2 h-[22px] w-[86px] -translate-x-1/2 rounded-full bg-black" />
-      <div className="flex items-center gap-1">
-        <Signal size={13} />
-        <span className="text-[10px]">LTE</span>
-        <Wifi size={13} className="opacity-40" />
-        <span className="ml-1 text-[11px] num">{battery}%</span>
-        <BatteryMedium size={16} className={battery < 20 ? 'text-rose-400' : ''} />
-      </div>
-    </div>
-  );
-}
-
-function useBadges(): Record<PhoneAppId, number> {
-  const tg = useGame((s) => Object.values(s.tg).reduce((a, c) => a + (c.visible ? c.unread : 0), 0));
-  const avito = useGame((s) => s.avito.chats.reduce((a, c) => a + c.unread, 0));
-  const sms = useGame((s) => s.sms.filter((m) => !m.read).length);
-  const notif = useGame((s) => JSON.stringify(['sber', 'tbank', 'alfa', 'wallet'].map((a) => s.notifications.filter((n) => n.app === a && !n.read).length)));
-  const [sber, tbank, alfa, wallet] = JSON.parse(notif) as number[];
-  return { sber, tbank, alfa, wallet, telegram: tg, avito, auth: sms };
-}
-
-function Home() {
-  const walletOn = useGame((s) => s.wallet.unlocked);
-  const now = useGame((s) => Math.floor(s.now));
-  const moscow = useGame((s) => s.hero.location === 'moscow');
-  const badges = useBadges();
-  const apps = APP_DEFS.filter((a) => a.id !== 'wallet' || walletOn);
-  return (
-    <div className="absolute inset-0 overflow-hidden" style={{ background: 'radial-gradient(120% 70% at 20% 0%, #3b2d6b 0%, transparent 60%), radial-gradient(120% 80% at 100% 100%, #0e4b5e 0%, transparent 55%), #0b0c1a' }}>
-      <div className="px-5 pt-6 text-white">
-        <div className="text-[44px] leading-none font-light num">{clockStr(now)}</div>
-        <div className="mt-1 text-sm text-white/70">{dateStr(now)} · {moscow ? 'Москва, +7°' : 'Новозаровск, +9° дождь'}</div>
-      </div>
-      <div className="mt-6 grid grid-cols-4 gap-x-2 gap-y-4 px-4">
-        {apps.map((a) => (
-          <button key={a.id} onClick={() => useGame.getState().phoneOpen(a.id)} className="flex flex-col items-center gap-1">
-            <div className="relative flex aspect-square w-[54px] items-center justify-center rounded-[14px] shadow-lg" style={{ background: a.bg }}>
-              {a.icon}
-              {badges[a.id] > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-[18px] rounded-full bg-[#ff3b30] px-1 text-center text-[10px] leading-[18px] font-bold text-white">{badges[a.id] > 99 ? '99+' : badges[a.id]}</span>}
-            </div>
-            <span className="max-w-full truncate text-[10.5px] text-white/90">{a.name}</span>
-          </button>
-        ))}
-      </div>
-      <div className="absolute right-3 bottom-3 left-3 rounded-2xl bg-white/10 p-3 text-[11px] leading-snug text-white/75 backdrop-blur">
-        Совет: копируйте реквизиты на компьютере — они попадают в общий буфер. В банке на телефоне жмите «Вставить из буфера».
-      </div>
-    </div>
-  );
-}
-
-function AppHost({ app }: { app: PhoneAppId }) {
-  return (
-    <div className="absolute inset-0 overflow-hidden bg-white">
-      {(app === 'sber' || app === 'tbank' || app === 'alfa') && <BankApp key={app} bank={app} />}
-      {app === 'telegram' && <TelegramApp />}
-      {app === 'avito' && <AvitoApp />}
-      {app === 'wallet' && <WalletApp />}
-      {app === 'auth' && <AuthApp />}
-    </div>
-  );
-}
-
-function LockScreen() {
-  const now = useGame((s) => Math.floor(s.now));
-  const json = useGame((s) => JSON.stringify(s.notifications.filter((n) => !n.read).slice(0, 4)));
-  const notes = JSON.parse(json) as PhoneNotification[];
-  const [scanning, setScanning] = useState(false);
-  const unlock = () => {
-    setScanning(true);
-    setTimeout(() => useGame.getState().phoneLock(false), 450);
+function HomeIndicator({ dark, visible }: { dark: boolean; visible: boolean }) {
+  const y0 = useRef<number | null>(null);
+  const go = () => {
+    y0.current = null;
+    const s = useGame.getState(), o = useOS.getState();
+    if (o.cc || o.nc) return o.set({ cc: false, nc: false });
+    if (s.ui.phoneLocked) return unlock();
+    audio.sfx('phone_home');
+    s.phoneOpen(null);
   };
   return (
-    <button onClick={unlock} className="absolute inset-0 flex flex-col items-center text-white" style={{ background: 'linear-gradient(180deg,#141a33,#05060c)' }}>
-      <Lock size={16} className="mt-4 opacity-70" />
-      <div className="mt-2 text-[64px] leading-none font-extralight num">{clockStr(now)}</div>
-      <div className="text-sm text-white/70">{dateStr(now)}</div>
-      <div className="mt-6 w-full space-y-2 px-3">
-        {notes.map((n) => (
-          <div key={n.id} className="rounded-2xl bg-white/12 p-2.5 text-left backdrop-blur">
-            <div className="text-[11px] font-semibold">{n.title}</div>
-            <div className="line-clamp-2 text-[11px] text-white/75">{n.body}</div>
-          </div>
-        ))}
-      </div>
-      <div className="mt-auto mb-8 flex flex-col items-center gap-2 text-xs text-white/60">
-        <ScanFace size={30} className={cn(scanning ? 'text-emerald-400' : 'text-white/70')} />
-        {scanning ? 'Face ID…' : 'Нажмите, чтобы разблокировать'}
-      </div>
+    <button
+      type="button"
+      title="Домой"
+      className="absolute bottom-0 left-1/2 z-[75] flex h-[22px] w-[46%] -translate-x-1/2 touch-none items-center justify-center"
+      style={{ opacity: visible ? 1 : 0, pointerEvents: visible ? 'auto' : 'none', transition: 'opacity .3s' }}
+      onPointerDown={(e) => {
+        y0.current = e.clientY;
+        e.currentTarget.setPointerCapture(e.pointerId);
+      }}
+      onPointerMove={(e) => y0.current !== null && y0.current - e.clientY > 16 && go()}
+      onClick={() => y0.current !== null && go()}
+    >
+      <span className="h-[5px] w-[36%] min-w-[104px] rounded-full transition-colors duration-300" style={{ background: dark ? 'rgba(0,0,0,.82)' : 'rgba(255,255,255,.88)' }} />
     </button>
   );
 }
 
-const APP_OF: Record<string, PhoneAppId | null> = { sber: 'sber', tbank: 'tbank', alfa: 'alfa', telegram: 'telegram', avito: 'avito', wallet: 'wallet', sms: 'auth', system: null };
-
-function Banner() {
-  const json = useGame((s) => JSON.stringify(s.notifications[0] ?? null));
-  const n = JSON.parse(json) as PhoneNotification | null;
-  const [shown, setShown] = useState<PhoneNotification | null>(null);
-  const seen = useRef<string | null>(n?.id ?? null);
-  useEffect(() => {
-    if (!n || n.id === seen.current) return;
-    seen.current = n.id;
-    const s = useGame.getState();
-    const target = APP_OF[n.app];
-    if (target && s.ui.phoneApp === target && !s.ui.phoneLocked && (target !== 'telegram' || s.ui.tgChat === n.link)) return;
-    setShown(n);
-  }, [json]);
-  useEffect(() => {
-    if (!shown) return;
-    const t = setTimeout(() => setShown(null), 4200);
-    return () => clearTimeout(t);
-  }, [shown]);
-  const open = () => {
-    if (!shown) return;
-    const s = useGame.getState();
-    const target = APP_OF[shown.app];
-    if (target) {
-      s.phoneLock(false);
-      if (target === 'telegram' && shown.link) s.setTgChat(shown.link);
-      s.phoneOpen(target);
-    } else if (shown.title.startsWith('Bybit')) {
-      s.openWindow('browser');
-      s.setBrowserTab('bybit');
-      s.setBybitView('orders');
-    }
-    setShown(null);
+/** Hardware buttons: silent switch / Action button, volume, side (lock), Camera Control on the Pro Max. */
+function SideButtons({ tier, dev }: { tier: number; dev: Device }) {
+  const vol = (d: number) => {
+    const st = useSettings.getState();
+    st.set({ master: clamp(Math.round((st.master + d) * 16) / 16, 0, 1), muted: false });
+    showHud('volume');
   };
+  const silent = () => {
+    const st = useSettings.getState();
+    st.set({ muted: !st.muted });
+    showHud('silent');
+  };
+  const power = () => {
+    const s = useGame.getState(), o = useOS.getState();
+    if (!s.ui.phoneLocked) return s.phoneLock(true);
+    if (o.aod) o.set({ aod: false });
+    else if (dev.aod && o.aodOn) o.set({ aod: true });
+  };
+  const btn = (key: string, side: 'left' | 'right', top: string, h: string, title: string, onClick: () => void) => (
+    <button
+      key={key}
+      type="button"
+      title={title}
+      onClick={(e) => {
+        e.stopPropagation();
+        audio.sfx('ui_click', { volume: 0.5 });
+        onClick();
+      }}
+      className="absolute z-0 w-[6px] transition-transform active:scale-x-50"
+      style={{ [side]: -4, top, height: h, background: dev.button, borderRadius: side === 'left' ? '3px 0 0 3px' : '0 3px 3px 0', boxShadow: 'inset 0 1px 1px rgba(255,255,255,.35), inset 0 -1px 1px rgba(0,0,0,.35)' }}
+    />
+  );
+  return (
+    <>
+      {btn('act', 'left', '17%', tier === 0 ? '3.4%' : '4.4%', tier === 0 ? 'Переключатель «Звонок/Бесшумно»' : 'Кнопка действия: бесшумный режим', silent)}
+      {btn('up', 'left', '24.5%', '7.4%', 'Громкость +', () => vol(1 / 16))}
+      {btn('down', 'left', '33.6%', '7.4%', 'Громкость −', () => vol(-1 / 16))}
+      {btn('side', 'right', '27%', '11%', 'Боковая кнопка (блокировка)', power)}
+      {tier === 2 && btn('cam', 'right', '58%', '7%', 'Управление камерой', () => audio.sfx('shutter'))}
+    </>
+  );
+}
+
+/** Volume slider by the buttons (iOS 26) and the silent-mode pill on the notch iPhone. */
+function Hud({ tier }: { tier: number }) {
+  const hud = useOS((s) => s.hud);
+  const muted = useSettings((s) => s.muted);
+  const v = useSettings((s) => (s.muted ? 0 : s.master));
   return (
     <AnimatePresence>
-      {shown && (
-        <motion.button
-          key={shown.id}
-          initial={{ y: -90, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: -90, opacity: 0 }}
-          transition={{ type: 'spring', damping: 22, stiffness: 300 }}
-          onClick={open}
-          className="absolute top-9 right-2 left-2 z-50 rounded-2xl bg-[#1d1f26]/95 p-2.5 text-left text-white shadow-2xl ring-1 ring-white/10 backdrop-blur"
-        >
-          <div className="flex items-center gap-1.5 text-[10px] text-white/50">
-            <span className="h-3 w-3 rounded" style={{ background: APP_DEFS.find((a) => a.id === APP_OF[shown.app])?.bg ?? '#666' }} />
-            {shown.app === 'sms' ? 'Сообщения' : APP_DEFS.find((a) => a.id === APP_OF[shown.app])?.name ?? 'Уведомление'} · сейчас
-          </div>
-          <div className="mt-0.5 truncate text-[12px] font-semibold">{shown.title}</div>
-          <div className="line-clamp-2 text-[11.5px] text-white/80">{shown.body}</div>
-        </motion.button>
+      {hud?.kind === 'volume' && (
+        <motion.div key="vol" className="lg absolute top-[22%] left-[2.4cqw] z-[78] h-[26%] w-[10cqw] overflow-hidden rounded-full" initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ type: 'spring', stiffness: 420, damping: 30 }}>
+          <div className="absolute inset-x-0 bottom-0 bg-white transition-[height] duration-150" style={{ height: `${v * 100}%` }} />
+          <span className="absolute inset-x-0 bottom-[2.6cqw] flex justify-center" style={{ color: v > 0.12 ? '#555' : '#fff' }}>{v > 0 ? <Volume2 size={15} fill="currentColor" /> : <VolumeX size={15} />}</span>
+        </motion.div>
+      )}
+      {hud?.kind === 'silent' && tier === 0 && (
+        <motion.div key="silent" className="ios lg-dark absolute inset-x-0 top-[34px] z-[78] mx-auto flex w-max items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold text-white" initial={{ opacity: 0, y: -14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -14 }}>
+          {muted ? <BellOff size={15} className="text-[#FF453A]" /> : <Bell size={15} />}
+          {muted ? 'Бесшумный режим' : 'Звонок'}
+        </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+// Hairline crack spreading from an impact near the bottom-right corner (used iPhone 11).
+const CRACK = (() => {
+  let seed = 11;
+  const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const ox = 336, oy = 776;
+  const rays: number[][][] = [];
+  let d = '';
+  for (let i = 0; i < 10; i++) {
+    let a = Math.PI * (0.94 + (i / 9) * 0.72) + (r() - 0.5) * 0.2;
+    let x = ox, y = oy;
+    const pts = [[x, y]];
+    const len = i === 4 ? 300 : 50 + r() * 130;
+    for (let l = 0; l < len; ) {
+      const s = 10 + r() * 24;
+      a += (r() - 0.5) * 0.5;
+      x += Math.cos(a) * s;
+      y += Math.sin(a) * s;
+      l += s;
+      pts.push([x, y]);
+    }
+    rays.push(pts);
+    d += `M${pts.map((p) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' L')} `;
+    if (pts.length > 3 && r() < 0.6) {
+      let [bx, by] = pts[2];
+      let ba = a + (r() < 0.5 ? 0.9 : -0.9);
+      d += `M${bx.toFixed(1)} ${by.toFixed(1)} `;
+      for (let k = 0; k < 3; k++) {
+        ba += (r() - 0.5) * 0.4;
+        bx += Math.cos(ba) * (8 + r() * 14);
+        by += Math.sin(ba) * (8 + r() * 14);
+        d += `L${bx.toFixed(1)} ${by.toFixed(1)} `;
+      }
+    }
+  }
+  for (const k of [1, 2]) d += `M${rays.filter((p) => p[k]).map((p) => `${p[k][0].toFixed(1)} ${p[k][1].toFixed(1)}`).join(' L')} `;
+  return d;
+})();
+
+function Crack() {
+  return (
+    <svg viewBox="0 0 390 844" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 z-[85] h-full w-full" fill="none">
+      <path d={CRACK} stroke="rgba(0,0,0,.4)" strokeWidth="1.5" transform="translate(.7 .7)" />
+      <path d={CRACK} stroke="rgba(255,255,255,.62)" strokeWidth=".75" />
+      <circle cx="336" cy="776" r="4" fill="rgba(255,255,255,.3)" />
+    </svg>
   );
 }
