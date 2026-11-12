@@ -25,7 +25,7 @@ export interface Graph {
 }
 
 /** Perceptual slider → gain. */
-export const vcurve = (v: number) => Math.pow(Math.min(1, Math.max(0, v || 0)), 1.5);
+export const vcurve = (v: number) => Math.pow(Math.min(1, Math.max(0, v || 0)), 1.3);
 
 // ───────── generated buffers (noise, crackle, rain drops, impulse responses) ─────────
 

@@ -47,34 +47,46 @@ function rank(iv: number, third: boolean) {
   if (r === 7) return 3;
   return 5;
 }
-function pcsFor(c: Chord, n: number): number[] {
+/** `withBass`: include the bass note (rootless voicings are only right while a bass instrument plays). */
+export function pcsFor(c: Chord, n: number, withBass = false): number[] {
   const third = c.iv.some((i) => i === 3 || i === 4);
-  const pcs = [...c.iv].sort((a, b) => rank(a, third) - rank(b, third)).slice(0, n).map((i) => (c.root + i) % 12);
+  let ivs = [...c.iv].sort((a, b) => rank(a, third) - rank(b, third));
+  if (withBass) ivs = ivs.filter((i) => (c.root + i) % 12 !== c.bass);
+  const pcs = ivs.slice(0, withBass ? n - 1 : n).map((i) => (c.root + i) % 12);
+  if (withBass) pcs.push(c.bass);
   while (pcs.length < n) pcs.push(pcs.length % 2 ? c.root : (c.root + 7) % 12);
   return pcs;
 }
 const pcOf = (m: number) => ((m % 12) + 12) % 12;
 
-/** Pick the inversion / drop-2 voicing closest to the previous one, inside [lo, hi]. */
-function voiceLead(prev: number[] | undefined, pcs: number[], lo: number, hi: number): number[] {
+/**
+ * Voicing for `pcs` closest to the previous one: tries every inversion (close, drop-2, drop-3) in three
+ * octaves and scores range, clusters (minor/major seconds), wide holes, register and voice movement.
+ */
+export function voiceLead(prev: number[] | undefined, pcs: number[], lo: number, hi: number): number[] {
   const n = pcs.length;
   const mid = (lo + hi) / 2;
   let best: number[] = [];
   let bs = Infinity;
   const consider = (v: number[]) => {
-    if (v[0] < lo - 2 || v[n - 1] > hi + 2) return;
-    const span = v[n - 1] - v[0];
-    let sc = Math.abs(v.reduce((a, b) => a + b, 0) / n - mid) * 0.5 + Math.max(0, span - 19) * 2 + Math.max(0, 7 - span);
-    if (v[0] < 58 && v[1] - v[0] < 3) sc += 4;
-    if (prev && prev.length === n) sc += v.reduce((a, m, i) => a + Math.abs(m - prev[i]), 0);
+    v.sort((a, b) => a - b);
+    let sc = Math.abs(v.reduce((a, b) => a + b, 0) / n - mid) * 0.4;
+    for (let i = 0; i < n; i++) sc += Math.max(0, lo - v[i], v[i] - hi) * 3;
+    for (let i = 0; i < n - 1; i++) {
+      const g = v[i + 1] - v[i];
+      if (g === 1) sc += 10;
+      else if (g === 2) sc += v[i] < 60 ? 5 : 1.5;
+      else if (g > 9 && i > 0) sc += (g - 9) * 1.5;
+    }
+    if (prev && prev.length === n) sc += v.reduce((a, m, i) => a + Math.abs(m - prev[i]), 0) + Math.abs(v[n - 1] - prev[n - 1]) * 0.5;
     if (sc < bs) {
       bs = sc;
-      best = v;
+      best = v.slice();
     }
   };
   for (let r = 0; r < n; r++) {
     const order = pcs.slice(r).concat(pcs.slice(0, r));
-    for (const oct of [0, 12]) {
+    for (const oct of [-12, 0, 12]) {
       const v: number[] = [];
       let cur = lo - 1 + oct;
       for (const pc of order) {
@@ -83,21 +95,18 @@ function voiceLead(prev: number[] | undefined, pcs: number[], lo: number, hi: nu
         v.push(m);
         cur = m;
       }
-      consider(v);
-      if (n >= 4) consider(v.map((m, i) => (i === n - 2 ? m - 12 : m)).sort((a, b) => a - b));
+      consider(v.slice());
+      if (n >= 4) {
+        consider(v.map((m, i) => (i === n - 2 ? m - 12 : m)));
+        consider(v.map((m, i) => (i === n - 3 ? m - 12 : m)));
+      }
     }
   }
-  if (best.length) return best;
-  let cur = lo - 1;
-  return pcs.map((pc) => {
-    let m = cur + 1;
-    while (pcOf(m) !== pc) m++;
-    return (cur = m);
-  });
+  return best;
 }
 
 const barCache = new WeakMap<Section, string[][]>();
-const barsOf = (sec: Section) => {
+export const barsOf = (sec: Section) => {
   let b = barCache.get(sec);
   if (!b) barCache.set(sec, (b = sec.c.split('|').map((x) => x.trim().split(/\s+/))));
   return b;
@@ -365,7 +374,8 @@ export class Sequencer {
     this.fader.connect(G.bus.music);
     this.verbF = gainN(ctx, fade > 0 ? 0 : 1);
     this.verbF.connect(G.musicVerb);
-    const out = gainN(ctx, this.S.gain ?? 1);
+    // 0.65 = mastering trim so tracks sit around −19 dBFS RMS at unity bus volume
+    const out = gainN(ctx, 0.65 * (this.S.gain ?? 1));
     out.connect(this.fader);
     this.colour = filter(ctx, 'lowpass', this.S.lp ?? 18000, 0.5);
     this.colour.connect(out);
@@ -465,8 +475,8 @@ export class Sequencer {
     return this.vibG;
   }
 
-  voicing(layer: string, c: Chord, lo: number, hi: number, n: number): number[] {
-    const v = voiceLead(this.prev.get(layer), pcsFor(c, n), lo, hi);
+  voicing(layer: string, c: Chord, lo: number, hi: number, n: number, withBass = false): number[] {
+    const v = voiceLead(this.prev.get(layer), pcsFor(c, n, withBass), lo, hi);
     this.prev.set(layer, v);
     return v;
   }
@@ -499,6 +509,9 @@ export class Sequencer {
   }
 
   scheduleUntil(t: number) {
+    // throttled timers (hidden tab): skip missed bars instead of playing them all at once
+    const now = this.ctx.currentTime;
+    if (now > 0.5 && this.next < now - 0.1) this.next = now + 0.05;
     let guard = 0;
     while (!this.stopped && this.next < t && guard++ < 16) {
       const d = this.beat * 4;
@@ -555,6 +568,7 @@ const TPL = [[2, 2, 4], [3, 3, 2], [-2, 2, 2, 2], [4, 2, 2], [1, 1, 2, 4], [-1, 
 const TPL_SPARSE = [[-2, 6], [4, -4], [-4, 4], [6, -2], [2, -2, 4], [8]];
 const TPL_END = [[4, 4], [2, 6], [8], [-2, 6], [3, 5]];
 
+const hasBass = (b: Bar) => b.sec.l.split(' ').includes('bass');
 const segAt = (b: Bar, beat: number) => b.segs.find((g) => beat * b.beat < g.t - b.t + g.d - 1e-6) ?? b.segs[b.segs.length - 1];
 const tonesOf = (c: Chord) => new Set(c.iv.map((i) => (c.root + i) % 12));
 
@@ -617,7 +631,7 @@ const LAYERS: Record<string, Layer> = {
   pad(s, b) {
     const o = s.S.inst.pad!;
     const out = s.strip('pad', o.vol, o.verb ?? 0.35, 0, { pump: o.pump });
-    for (const g of b.segs) sawPad(s, out, g.t, g.d, s.voicing('pad', g.c, o.lo ?? 52, o.hi ?? 76, o.n ?? 4), o, b.e);
+    for (const g of b.segs) sawPad(s, out, g.t, g.d, s.voicing('pad', g.c, o.lo ?? 52, o.hi ?? 76, o.n ?? 5, true), o, b.e);
   },
 
   keys(s, b) {
@@ -625,7 +639,7 @@ const LAYERS: Record<string, Layer> = {
     const out = s.strip('keys', o.vol, o.verb ?? 0.25, o.dly ?? 0.06, { autopan: o.style === 'stab' ? 0 : 0.3 });
     const vel = 0.55 + 0.35 * b.e;
     for (const g of b.segs) {
-      const v = s.voicing('keys', g.c, o.lo ?? 55, o.hi ?? 74, 4);
+      const v = s.voicing('keys', g.c, o.lo ?? 55, o.hi ?? 74, 4, !hasBass(b));
       if (o.style === 'whole') strum(s, out, g.t + 0.01, v, vel, g.d * 0.95, 0.012);
       else if (o.style === 'comp') {
         const P = COMP[Math.floor(s.rnd() * COMP.length)].filter((x) => x < g.beats);
@@ -746,7 +760,7 @@ const LAYERS: Record<string, Layer> = {
     const step = o.rate === 16 ? 0.25 : o.rate === 12 ? 1 / 3 : 0.5;
     const lo = o.lo ?? 60;
     for (const g of b.segs) {
-      const v = s.voicing('arp', g.c, lo, lo + 15, 4);
+      const v = s.voicing('arp', g.c, lo, lo + 15, 4, !hasBass(b));
       const notes = [...v, v[0] + 12, v[1] + 12];
       const n = notes.length;
       const steps = Math.round(g.beats / step);
@@ -791,7 +805,7 @@ const LAYERS: Record<string, Layer> = {
     const o = s.S.inst.strings!;
     const out = s.strip('str', o.vol, 0.5, 0);
     for (const g of b.segs) {
-      const v = s.voicing('str', g.c, o.lo ?? 50, o.hi ?? 76, 4);
+      const v = s.voicing('str', g.c, o.lo ?? 50, o.hi ?? 76, 4, true);
       stringsN(s, out, g.t, g.d, b.e > 0.75 ? [...v, v[v.length - 2] + 12] : v, o.atk ?? 0.9, b.e);
     }
   },

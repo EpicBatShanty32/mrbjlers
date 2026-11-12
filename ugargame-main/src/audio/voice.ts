@@ -74,8 +74,10 @@ function pick(g: 'male' | 'female'): { v: SpeechSynthesisVoice; pitch: number } 
   return { v: ru[0], pitch: g === 'male' ? 0.72 : 1.32 };
 }
 
-export const voiceAvailable = () => (initVoices(), !!synth() && ru.length > 0);
-export const listVoices = () => (initVoices(), ru.map((v) => ({ name: v.name, gender: genderOf(v) })));
+/** Re-read the engine's voice list (some engines populate it late or never fire voiceschanged). */
+const refresh = () => (initVoices(), load());
+export const voiceAvailable = () => (refresh(), !!synth() && ru.length > 0);
+export const listVoices = () => (refresh(), ru.map((v) => ({ name: v.name, gender: genderOf(v) })));
 
 // ───────── casting ─────────
 
@@ -153,7 +155,11 @@ export function cleanText(text: string): { s: string; map: number[] } {
   const push = (str: string, at: number) => {
     for (let j = 0; j < str.length; j++) {
       const ch = str[j];
-      if (/\s/.test(ch) && (!s.length || s[s.length - 1] === ' ')) continue;
+      if (/\s/.test(ch) && (!s.length || s[s.length - 1] === ' ' || s[s.length - 1] === '(')) continue;
+      if (/[,.!?;:)]/.test(ch) && s.endsWith(' ')) {
+        s = s.slice(0, -1);
+        map.pop();
+      }
       s += /\s/.test(ch) ? ' ' : ch;
       map.push(at);
     }
@@ -224,7 +230,7 @@ export function stopVoice() {
 }
 
 export function speak(req: SpeakRequest): VoiceHandle {
-  initVoices();
+  refresh();
   current?.();
   const set = getSettings();
   const { s: text, map } = cleanText(req.text ?? '');

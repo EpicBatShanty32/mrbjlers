@@ -98,7 +98,7 @@ export const SONGS: Record<MusicTrack, Song> = {
   },
   // Lazy daytime lo-fi: jazzy ii–V–I in F, heavy swing.
   day: {
-    bpm: 76, key: 53, mode: 'ionian', swing: 0.3, lp: 7800,
+    bpm: 76, key: 53, mode: 'ionian', swing: 0.3, lp: 7800, gain: 1.1,
     inst: {
       keys: { style: 'comp', vol: 0.26, lo: 55, hi: 74 },
       pad: { cut: 900, vol: 0.1, atk: 1, rel: 1.5, lo: 48, hi: 67, wave: 'triangle' },
@@ -118,7 +118,7 @@ export const SONGS: Record<MusicTrack, Song> = {
   },
   // 2 a.m. ambient: slow Db-major pads, bells, sparse glass melody.
   night: {
-    bpm: 60, key: 49, mode: 'ionian',
+    bpm: 60, key: 49, mode: 'ionian', gain: 0.6,
     inst: {
       pad: { cut: 1000, vol: 0.24, atk: 2.4, rel: 3, lo: 51, hi: 75, detune: 11 },
       bass: { style: 'sustain', wave: 'sub', vol: 0.4 },
@@ -173,7 +173,7 @@ export const SONGS: Record<MusicTrack, Song> = {
   },
   // 115-ФЗ: driving phrygian ostinato over a D pedal, taiko, a soft two-tone alarm.
   danger: {
-    bpm: 124, key: 50, mode: 'phrygian', lp: 11000,
+    bpm: 124, key: 50, mode: 'phrygian', lp: 11000, gain: 0.77,
     inst: {
       drone: { vol: 0.2, cut: 380, drive: true },
       bass: { style: 'drive', wave: 'saw', vol: 0.34 },
@@ -193,7 +193,7 @@ export const SONGS: Record<MusicTrack, Song> = {
   },
   // Sad piano-like ballad in B minor.
   cs_rain: {
-    bpm: 66, key: 47, mode: 'aeolian',
+    bpm: 66, key: 47, mode: 'aeolian', gain: 0.81,
     inst: {
       keys: { style: 'ballad', vol: 0.3, lo: 52, hi: 71, verb: 0.4 },
       pad: { cut: 900, vol: 0.12, atk: 2, rel: 2.5, lo: 50, hi: 74 },
@@ -211,7 +211,7 @@ export const SONGS: Record<MusicTrack, Song> = {
   },
   // Warm, rising D major: 8th plucks, then drums, strings and a flute-like melody.
   cs_hope: {
-    bpm: 92, key: 50, mode: 'ionian', swing: 0.05,
+    bpm: 92, key: 50, mode: 'ionian', swing: 0.05, gain: 0.82,
     inst: {
       arp: { rate: 8, pat: 'up', wave: 'pluck', vol: 0.14, lo: 62, dly: 0.3 },
       pad: { cut: 1600, vol: 0.15, atk: 1, rel: 1.6, lo: 54, hi: 78 },
@@ -231,7 +231,7 @@ export const SONGS: Record<MusicTrack, Song> = {
   },
   // Calm mentor: brushed jazz in Bb, walking upright bass, vibraphone melody.
   cs_mentor: {
-    bpm: 70, key: 46, mode: 'ionian', swing: 0.26, lp: 8000,
+    bpm: 70, key: 46, mode: 'ionian', swing: 0.26, lp: 8000, gain: 0.82,
     inst: {
       keys: { style: 'comp', vol: 0.26, lo: 53, hi: 72 },
       bass: { style: 'walk', wave: 'pluck', vol: 0.5 },
@@ -265,7 +265,7 @@ export const SONGS: Record<MusicTrack, Song> = {
   },
   // Crisis: heavy Eb minor — driven drone, sub pedal, taiko, impacts.
   cs_crisis: {
-    bpm: 66, key: 51, mode: 'aeolian', lp: 9000,
+    bpm: 66, key: 51, mode: 'aeolian', lp: 9000, gain: 0.6,
     inst: {
       drone: { vol: 0.26, cut: 300, drive: true },
       bass: { style: 'pedal', wave: 'sub', vol: 0.5 },
@@ -305,7 +305,7 @@ export const SONGS: Record<MusicTrack, Song> = {
   },
   // Bittersweet G major lo-fi with the minor iv (Cm6).
   cs_melancholy: {
-    bpm: 74, key: 55, mode: 'ionian', swing: 0.2, lp: 8000,
+    bpm: 74, key: 55, mode: 'ionian', swing: 0.2, lp: 8000, gain: 0.82,
     inst: {
       keys: { style: 'ballad', vol: 0.26, lo: 52, hi: 72 },
       bass: { style: 'lofi', wave: 'sub', vol: 0.48 },

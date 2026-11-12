@@ -26,9 +26,10 @@ export class Bed {
     this.id = id;
     this.t0 = t0;
     this.level = level;
-    this.fader = gainN(G.ctx, fade > 0 ? 0 : level);
+    const lv = level * (BED_GAIN[id] ?? 1);
+    this.fader = gainN(G.ctx, fade > 0 ? 0 : lv);
     this.fader.connect(G.bus.ambience);
-    if (fade > 0) fadeParam(this.fader.gain, level, t0, fade);
+    if (fade > 0) fadeParam(this.fader.gain, lv, t0, fade);
     BEDS[id](this);
   }
 
@@ -90,7 +91,10 @@ export class Bed {
 
   scheduleUntil(t: number) {
     if (this.stopped) return;
-    for (const e of this.evs)
+    const now = this.ctx.currentTime;
+    for (const e of this.evs) {
+      // throttled timers (hidden tab): skip missed events instead of firing them all at once
+      if (now > 0.5 && e.next < now - 0.3) e.next = now + rand(0, e.max);
       while (e.next < t) {
         try {
           e.fn(e.next);
@@ -99,6 +103,7 @@ export class Bed {
         }
         e.next += rand(e.min, e.max);
       }
+    }
   }
 
   stop(fade: number) {
@@ -247,6 +252,9 @@ function wind(b: Bed, v: number) {
 
 // ───────── beds ─────────
 
+/** Loudness trim per bed (dense rain/traffic beds are pulled down to sit under the music). */
+const BED_GAIN: Partial<Record<AmbienceId, number>> = { rain_street: 0.5, train: 0.45, storm: 0.6, city_night: 0.45, rain_window: 0.75, office_night: 0.7 };
+
 const BEDS: Record<AmbienceId, (b: Bed) => void> = {
   rain_street: (b) => {
     b.loop('pink', [['highpass', 500], ['lowpass', 6000]], 0.09, { lfo: [0.05, 0.25] });
@@ -366,7 +374,7 @@ function applyAmbience() {
   if (cur && !cur.stopped && cur.id === want) {
     if (cur.level !== wantLevel) {
       cur.level = wantLevel;
-      fadeParam(cur.fader.gain, wantLevel, G.ctx.currentTime, Math.max(0.3, fadeS));
+      fadeParam(cur.fader.gain, wantLevel * (BED_GAIN[cur.id] ?? 1), G.ctx.currentTime, Math.max(0.3, fadeS));
     }
     return;
   }

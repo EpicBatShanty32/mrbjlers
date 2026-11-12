@@ -13,7 +13,7 @@ const R: Record<SfxId, Rec> = {
     B(G, o, t, { f: 1250, f1: 820, d: 0.035, v: 0.14 });
     H(G, o, t, { d: 0.01, v: 0.04, hp: 4000 });
   },
-  ui_hover: (G, o, t) => void B(G, o, t, { f: 2300, d: 0.018, v: 0.025 }),
+  ui_hover: (G, o, t) => void B(G, o, t, { f: 2300, d: 0.018, v: 0.04 }),
   ui_back: (G, o, t) => {
     B(G, o, t, { f: 900, f1: 640, d: 0.05, v: 0.11 });
     B(G, o, t + 0.045, { f: 700, f1: 520, d: 0.06, v: 0.08 });
@@ -23,12 +23,12 @@ const R: Record<SfxId, Rec> = {
     H(G, o, t, { d: 0.014, v: 0.05, bp: 3000, q: 1.2 });
   },
   ui_open: (G, o, t) => {
-    H(G, o, t, { a: 0.09, d: 0.09, v: 0.05, bp: 900, bp1: 3200, q: 1.4 });
+    H(G, o, t, { a: 0.09, d: 0.09, v: 0.1, bp: 900, bp1: 3200, q: 1.4 });
     B(G, o, t + 0.02, { f: 660, f1: 990, d: 0.12, a: 0.01, v: 0.06 });
   },
   ui_close: (G, o, t) => {
-    H(G, o, t, { a: 0.05, d: 0.1, v: 0.045, bp: 3000, bp1: 800, q: 1.4 });
-    B(G, o, t, { f: 880, f1: 600, d: 0.1, v: 0.055 });
+    H(G, o, t, { a: 0.05, d: 0.1, v: 0.1, bp: 3000, bp1: 800, q: 1.4 });
+    B(G, o, t, { f: 880, f1: 600, d: 0.1, v: 0.07 });
   },
   ui_error: (G, o, t) => {
     B(G, o, t, { f: 330, f1: 300, d: 0.13, v: 0.15, type: 'triangle', lp: 1600 });
@@ -48,10 +48,10 @@ const R: Record<SfxId, Rec> = {
   },
   // typing
   key: (G, o, t) => {
-    H(G, o, t, { d: 0.016, v: 0.05, bp: 2200 + rnd() * 1600, q: 1.2 });
-    B(G, o, t, { f: 170 + rnd() * 60, d: 0.02, v: 0.04 });
+    H(G, o, t, { d: 0.016, v: 0.08, bp: 2200 + rnd() * 1600, q: 1.2 });
+    B(G, o, t, { f: 170 + rnd() * 60, d: 0.02, v: 0.06 });
   },
-  text_tick: (G, o, t) => void B(G, o, t, { f: 2700 + rnd() * 500, d: 0.012, v: 0.025 }),
+  text_tick: (G, o, t) => void B(G, o, t, { f: 2700 + rnd() * 500, d: 0.012, v: 0.04 }),
   // phone
   phone_tap: (G, o, t) => void B(G, o, t, { f: 1650, f1: 1300, d: 0.022, v: 0.08 }),
   phone_unlock: (G, o, t) => {
@@ -68,14 +68,17 @@ const R: Record<SfxId, Rec> = {
     buzz(G, o, t + 0.5, 0.32, 0.22);
   },
   phone_home: (G, o, t) => {
-    H(G, o, t, { a: 0.03, d: 0.1, v: 0.035, bp: 2200, bp1: 1000, q: 1.2 });
-    B(G, o, t, { f: 1000, d: 0.03, v: 0.05 });
+    H(G, o, t, { a: 0.03, d: 0.1, v: 0.08, bp: 2200, bp1: 1000, q: 1.2 });
+    B(G, o, t, { f: 1000, d: 0.03, v: 0.07 });
   },
   phone_app_open: (G, o, t) => {
-    H(G, o, t, { a: 0.07, d: 0.07, v: 0.04, bp: 1200, bp1: 3500, q: 1.8 });
-    B(G, o, t, { f: 800, f1: 1100, d: 0.06, v: 0.035 });
+    H(G, o, t, { a: 0.07, d: 0.07, v: 0.12, bp: 1200, bp1: 3500, q: 1.8 });
+    B(G, o, t, { f: 800, f1: 1100, d: 0.06, v: 0.06 });
   },
-  phone_app_close: (G, o, t) => void H(G, o, t, { a: 0.03, d: 0.1, v: 0.035, bp: 3000, bp1: 1000, q: 1.8 }),
+  phone_app_close: (G, o, t) => {
+    H(G, o, t, { a: 0.03, d: 0.1, v: 0.14, bp: 3000, bp1: 1000, q: 1.8 });
+    B(G, o, t, { f: 1000, f1: 700, d: 0.06, v: 0.05 });
+  },
   notify_bank: (G, o, t) => {
     L(G, o, t, { f: 1318.5, ratio: 2, idx: 0.9, d: 0.6, v: 0.16 });
     L(G, o, t + 0.11, { f: 1760, ratio: 2, idx: 0.9, d: 0.9, v: 0.15 });
@@ -95,7 +98,7 @@ const R: Record<SfxId, Rec> = {
     L(G, o, t + 0.06, { f: 2637, ratio: 2.4, idx: 1, d: 0.5, v: 0.09 });
   },
   msg_send: (G, o, t) => {
-    H(G, o, t, { a: 0.05, d: 0.07, v: 0.035, bp: 1500, bp1: 4000, q: 1.5 });
+    H(G, o, t, { a: 0.05, d: 0.07, v: 0.08, bp: 1500, bp1: 4000, q: 1.5 });
     B(G, o, t, { f: 700, f1: 1200, d: 0.07, v: 0.07 });
   },
   msg_receive: (G, o, t) => {
@@ -130,16 +133,16 @@ const R: Record<SfxId, Rec> = {
     B(G, o, t + 0.045, { f: 1700, d: 0.04, v: 0.06 });
   },
   window_open: (G, o, t) => {
-    H(G, o, t, { kind: 'pink', a: 0.1, d: 0.11, v: 0.06, bp: 600, bp1: 2400, q: 1.2 });
-    B(G, o, t + 0.02, { f: 520, f1: 780, d: 0.14, a: 0.02, v: 0.035 });
+    H(G, o, t, { kind: 'pink', a: 0.1, d: 0.11, v: 0.14, bp: 600, bp1: 2400, q: 1.2 });
+    B(G, o, t + 0.02, { f: 520, f1: 780, d: 0.14, a: 0.02, v: 0.05 });
   },
   window_close: (G, o, t) => {
-    H(G, o, t, { kind: 'pink', a: 0.05, d: 0.11, v: 0.05, bp: 2400, bp1: 600, q: 1.2 });
-    B(G, o, t, { f: 700, f1: 450, d: 0.1, v: 0.035 });
+    H(G, o, t, { kind: 'pink', a: 0.05, d: 0.11, v: 0.12, bp: 2400, bp1: 600, q: 1.2 });
+    B(G, o, t, { f: 700, f1: 450, d: 0.1, v: 0.05 });
   },
   window_min: (G, o, t) => {
-    H(G, o, t, { kind: 'pink', a: 0.06, d: 0.16, v: 0.05, bp: 3000, bp1: 500, q: 2 });
-    B(G, o, t, { f: 900, f1: 350, d: 0.2, v: 0.03 });
+    H(G, o, t, { kind: 'pink', a: 0.06, d: 0.16, v: 0.12, bp: 3000, bp1: 500, q: 2 });
+    B(G, o, t, { f: 900, f1: 350, d: 0.2, v: 0.05 });
   },
   thought: (G, o, t) => {
     L(G, o, t, { f: 659, ratio: 2, idx: 0.5, d: 1.2, a: 0.02, v: 0.06 });
@@ -164,8 +167,8 @@ const R: Record<SfxId, Rec> = {
   },
   // cinematic
   cine_whoosh: (G, o, t) => {
-    H(G, o, t, { kind: 'pink', a: 0.45, d: 0.5, v: 0.22, bp: 300, bp1: 2400, q: 1.1, pan: -0.6, pan1: 0.6 });
-    H(G, o, t, { kind: 'brown', a: 0.4, d: 0.4, v: 0.12, lp: 220 });
+    H(G, o, t, { kind: 'pink', a: 0.45, d: 0.5, v: 0.5, bp: 300, bp1: 2400, q: 1.1, pan: -0.6, pan1: 0.6 });
+    H(G, o, t, { kind: 'brown', a: 0.4, d: 0.4, v: 0.3, lp: 220 });
   },
   cine_impact: (G, o, t) => {
     T(G, o, t, { f: 95, f1: 32, g: 0.5, d: 1.4, v: 0.7 });
@@ -186,7 +189,7 @@ const R: Record<SfxId, Rec> = {
     [1047, 1319, 1568, 1976, 2349].forEach((f, i) => L(G, o, t + i * 0.06, { f, ratio: 2, idx: 0.6, d: 2.4, a: 0.01, v: 0.06 }));
     H(G, o, t, { a: 0.8, d: 1.4, v: 0.035, hp: 6000 });
   },
-  choice_hover: (G, o, t) => void B(G, o, t, { f: 1760, d: 0.03, v: 0.035 }),
+  choice_hover: (G, o, t) => void B(G, o, t, { f: 1760, d: 0.03, v: 0.05 }),
   choice_select: (G, o, t) => {
     L(G, o, t, { f: 880, ratio: 2, idx: 0.7, d: 0.45, v: 0.11 });
     B(G, o, t, { f: 1320, d: 0.08, v: 0.05 });
@@ -288,7 +291,7 @@ export function playSfx(id: SfxId, opts: SfxOptions = {}, G: Graph | null = live
   const ctx = G.ctx;
   if (at === undefined) {
     const s = getSettings();
-    if (s.muted || s.sfx <= 0 || s.master <= 0 || ctx.state === 'closed') return;
+    if (s.muted || s.sfx <= 0 || s.master <= 0 || ctx.state !== 'running') return;
     const now = performance.now();
     if (now - (lastAt.get(id) ?? -1e9) < 40) return;
     lastAt.set(id, now);

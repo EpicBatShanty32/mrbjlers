@@ -6,7 +6,7 @@
 import type { AmbienceId, MusicTrack, SfxId } from './index';
 import { Bed } from './ambience';
 import { buildGraph, type Graph } from './engine';
-import { Sequencer, validateSongs } from './music';
+import { barsOf, chord, pcsFor, Sequencer, validateSongs, voiceLead } from './music';
 import { SONGS } from './songs';
 import { playSfx, SFX_IDS } from './sfx';
 import { cleanText, speak } from './voice';
@@ -87,6 +87,26 @@ export function checkSpeak(): Promise<{ tts: boolean; est: number; ends: number;
       res({ tts: h.tts, est: h.estimatedMs, ends, starts, progress: [progress[0], progress[progress.length - 1], text.length], cleaned: cleanText(text).s });
     }, h.estimatedMs + 600);
   });
+}
+
+const NN = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+const nn = (m: number) => NN[((m % 12) + 12) % 12] + (Math.floor(m / 12) - 1);
+
+/** Voiced keys/pad notes per chord of a section, with the total semitone movement from the previous voicing. */
+export function voicings(id: MusicTrack, sec: string, n = 4): string[] {
+  const S = SONGS[id];
+  const o = S.inst.keys ?? S.inst.pad;
+  let prev: number[] | undefined;
+  return barsOf(S.sec[sec]).map((bar) =>
+    bar
+      .map((sym) => {
+        const v = voiceLead(prev, pcsFor(chord(sym), n), o?.lo ?? 55, o?.hi ?? 74);
+        const mv = prev ? v.reduce((a, m, i) => a + Math.abs(m - prev![i]), 0) : 0;
+        prev = v;
+        return `${sym}: ${v.map(nn).join(' ')} (Δ${mv})`;
+      })
+      .join(' | '),
+  );
 }
 
 export async function checkAll() {
