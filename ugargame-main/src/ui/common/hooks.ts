@@ -44,7 +44,7 @@ export function sfx(kind: LegacySfx | SfxId, opts?: SfxOptions) {
 
 const NOTIFY: Record<PhoneNotification['app'], SfxId> = {
   sber: 'notify_bank', tbank: 'notify_bank', alfa: 'notify_bank', telegram: 'notify_tg', sms: 'notify_sms',
-  avito: 'notify_market', wallet: 'notify_wallet', system: 'notify_system', auth: 'notify_system',
+  avito: 'notify_market', wallet: 'notify_wallet', system: 'notify_system', auth: 'notify_system', settings: 'notify_system', music: 'notify_system',
 };
 
 /** Plays sounds in reaction to state changes (notifications, toasts, money, windows, phone…). */
